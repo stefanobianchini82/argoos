@@ -8,6 +8,10 @@ Alpine.data('metricCharts', (initialData) => ({
         this.build(initialData);
     },
 
+    destroy() {
+        this.destroyAll();
+    },
+
     update(data) {
         this.build(data);
     },

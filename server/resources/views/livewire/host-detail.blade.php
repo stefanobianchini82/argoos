@@ -134,11 +134,12 @@
         </div>
 
         @if(count($chartData['labels']) === 0)
-            <div class="bg-white rounded-xl border border-gray-200 py-12 text-center text-sm text-gray-400 mb-8">
+            <div wire:key="chart-empty" class="bg-white rounded-xl border border-gray-200 py-12 text-center text-sm text-gray-400 mb-8">
                 No data for this time range.
             </div>
         @else
             <div
+                wire:key="chart-live"
                 wire:ignore
                 x-data="metricCharts(@js($chartData))"
                 @charts-updated.window="update($event.detail.data)"
