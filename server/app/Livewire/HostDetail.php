@@ -4,12 +4,37 @@ namespace App\Livewire;
 
 use App\Models\DiskPartition;
 use App\Models\Host;
+use App\Models\Metric;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class HostDetail extends Component
 {
     public Host $host;
+
+    public bool $confirmingDelete = false;
+
+    public function confirmDelete(): void
+    {
+        $this->confirmingDelete = true;
+    }
+
+    public function cancelDelete(): void
+    {
+        $this->confirmingDelete = false;
+    }
+
+    public function deleteHost(): void
+    {
+        DB::transaction(function () {
+            Metric::where('host_id', $this->host->id)->delete();
+            DiskPartition::where('host_id', $this->host->id)->delete();
+            $this->host->delete();
+        });
+
+        $this->redirect('/');
+    }
 
     public function render()
     {

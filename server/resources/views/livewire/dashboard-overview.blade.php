@@ -1,7 +1,13 @@
 <div wire:poll.30s>
     <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-lg font-semibold text-gray-900">Hosts</h1>
-        <span class="text-sm text-gray-400">{{ $hosts->count() }} host{{ $hosts->count() !== 1 ? 's' : '' }}</span>
+        <div class="flex items-center gap-3">
+            <h1 class="text-lg font-semibold text-gray-900">Hosts</h1>
+            <span class="text-sm text-gray-400">{{ $hosts->count() }} host{{ $hosts->count() !== 1 ? 's' : '' }}</span>
+        </div>
+        <a href="/hosts/create"
+           class="inline-flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 transition-colors">
+            + New host
+        </a>
     </div>
 
     @if($hosts->isEmpty())

@@ -5,7 +5,7 @@
     </div>
 
     <div class="flex items-center gap-3 mb-8">
-        <div class="min-w-0">
+        <div class="min-w-0 flex-1">
             <h1 class="text-lg font-semibold text-gray-900">{{ $this->host->label }}</h1>
             @if($this->host->ip)
                 <p class="text-sm text-gray-400 font-mono mt-0.5">{{ $this->host->ip }}</p>
@@ -22,7 +22,37 @@
                 Offline
             </span>
         @endif
+        <div class="flex items-center gap-2 ml-2">
+            <a href="/hosts/{{ $this->host->id }}/edit"
+               class="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
+                Edit
+            </a>
+            <button
+                wire:click="confirmDelete"
+                class="text-sm font-medium text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg px-3 py-1.5 transition-colors"
+            >
+                Delete
+            </button>
+        </div>
     </div>
+
+    @if($confirmingDelete)
+        <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 flex items-center justify-between gap-4">
+            <p class="text-sm text-red-700">
+                Delete <strong>{{ $this->host->label }}</strong>? This will permanently remove all metrics and disk data.
+            </p>
+            <div class="flex items-center gap-2 shrink-0">
+                <button wire:click="cancelDelete"
+                        class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors">
+                    Cancel
+                </button>
+                <button wire:click="deleteHost"
+                        class="text-sm px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">
+                    Delete
+                </button>
+            </div>
+        </div>
+    @endif
 
     @if($latestMetric)
         <p class="text-xs text-gray-400 mb-4">
