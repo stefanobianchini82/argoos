@@ -118,6 +118,12 @@ return [
             'replace_placeholders' => true,
         ],
 
+        'mail' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/mail.log'),
+            'level' => 'debug',
+        ],
+
         'null' => [
             'driver' => 'monolog',
             'handler' => NullHandler::class,

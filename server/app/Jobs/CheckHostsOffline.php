@@ -3,11 +3,11 @@
 namespace App\Jobs;
 
 use App\Models\Host;
+use App\Models\Setting;
 use App\Notifications\HostOffline;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Notifications\AnonymousNotifiable;
-use Illuminate\Support\Facades\Log;
 
 class CheckHostsOffline implements ShouldQueue
 {
@@ -15,14 +15,19 @@ class CheckHostsOffline implements ShouldQueue
 
     public function handle(): void
     {
-        $alertEmail = config('dashboard.alert_email');
+        $emailEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
+        $telegramEnabled = filter_var(Setting::get(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
 
-        if (blank($alertEmail)) {
+        $alertEmail     = Setting::get(Setting::ALERT_EMAIL);
+        $telegramChatId = Setting::get(Setting::TELEGRAM_CHAT_ID);
+
+        $hasEmail    = $emailEnabled && filled($alertEmail);
+        $hasTelegram = $telegramEnabled && filled($telegramChatId);
+
+        if (! $hasEmail && ! $hasTelegram) {
             return;
         }
 
-        // Find hosts that have gone offline (last_seen_at > 3 min ago)
-        // and haven't been notified in the last 10 minutes to avoid spam.
         Host::query()
             ->whereNotNull('last_seen_at')
             ->where('last_seen_at', '<', now()->subMinutes(3))
@@ -30,15 +35,20 @@ class CheckHostsOffline implements ShouldQueue
                 $q->whereNull('last_offline_notified_at')
                   ->orWhere('last_offline_notified_at', '<', now()->subMinutes(10));
             })
-            ->each(function (Host $host) use ($alertEmail) {
+            ->each(function (Host $host) use ($alertEmail, $telegramChatId, $hasEmail, $hasTelegram) {
                 $host->update(['last_offline_notified_at' => now()]);
 
-                $notifiable = (new AnonymousNotifiable)
-                    ->route('mail', $alertEmail)
-                    ->route('telegram', $alertEmail)
-                    ->route('webhook', $alertEmail);
+                $notifiable = new AnonymousNotifiable;
 
-                $notifiable->notify(new HostOffline($host));
+                if ($hasEmail) {
+                    $notifiable = $notifiable->route('mail', $alertEmail);
+                }
+
+                if ($hasTelegram) {
+                    $notifiable = $notifiable->route('telegram', $telegramChatId);
+                }
+
+                $notifiable->notify(new HostOffline($host, $hasEmail, $hasTelegram));
             });
     }
 }

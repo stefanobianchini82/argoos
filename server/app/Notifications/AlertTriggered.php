@@ -6,7 +6,6 @@ use App\Models\AlertEvent;
 use App\Models\AlertRule;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 class AlertTriggered extends Notification
 {
@@ -42,13 +41,19 @@ class AlertTriggered extends Notification
             ->line('Log in to the Argoos dashboard to view details.');
     }
 
-    public function toTelegram(object $notifiable): void
+    public function toTelegram(object $notifiable): string
     {
-        // Telegram notifications are not yet implemented.
-        Log::warning('AlertTriggered: Telegram channel is not yet implemented.', [
-            'rule_id' => $this->rule->id,
-            'host'    => $this->rule->host?->label,
-        ]);
+        $host      = $this->rule->host;
+        $metric    = $this->rule->metricLabel();
+        $operator  = $this->rule->operator;
+        $threshold = $this->rule->threshold;
+        $peak      = $this->event->peak_value;
+        $at        = $this->event->triggered_at->format('Y-m-d H:i:s');
+
+        return "🚨 <b>Alert triggered on {$host->label}</b>\n\n"
+            . "<b>{$metric}</b> {$operator} {$threshold} for {$this->rule->duration_minutes} minute(s).\n"
+            . "Current value: <b>{$peak}</b>\n"
+            . "Triggered at: {$at} UTC";
     }
 
     public function toWebhook(object $notifiable): void

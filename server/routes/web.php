@@ -6,6 +6,7 @@ use App\Livewire\DashboardOverview;
 use App\Livewire\HostCreate;
 use App\Livewire\HostDetail;
 use App\Livewire\HostEdit;
+use App\Livewire\Settings;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth.basic.argoos')->group(function () {
@@ -16,4 +17,5 @@ Route::middleware('auth.basic.argoos')->group(function () {
     Route::get('/hosts/{host}/alerts',                    AlertRuleList::class)->name('hosts.alerts');
     Route::get('/hosts/{host}/alerts/create',             AlertRuleForm::class)->name('hosts.alerts.create');
     Route::get('/hosts/{host}/alerts/{alertRule}/edit',   AlertRuleForm::class)->name('hosts.alerts.edit');
+    Route::get('/settings',                               Settings::class)->name('settings');
 });

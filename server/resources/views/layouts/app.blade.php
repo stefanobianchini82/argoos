@@ -15,6 +15,12 @@
                 <img src="/images/argoos_logo_no_payoff.svg" alt="Argoos" class="h-9 w-auto">
                 <span class="font-semibold text-sm tracking-tight pl-2">| Self-Hosted Monitoring</span>
             </a>
+            <nav class="ml-auto flex items-center gap-4">
+                <a href="{{ route('settings') }}"
+                   class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">
+                    Settings
+                </a>
+            </nav>
         </div>
     </header>
 

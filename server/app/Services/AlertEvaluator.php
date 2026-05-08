@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\AlertEvent;
 use App\Models\AlertRule;
 use App\Notifications\AlertTriggered;
-use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -72,17 +71,24 @@ class AlertEvaluator
 
     private function sendNotification(AlertRule $rule, AlertEvent $event): void
     {
-        $alertEmail = config('dashboard.alert_email');
+        $notifiable = new \Illuminate\Notifications\AnonymousNotifiable;
 
-        if (blank($alertEmail)) {
-            Log::warning('AlertEvaluator: no DASHBOARD_ALERT_EMAIL configured, skipping notification.');
-            return;
+        if ($rule->channel === 'telegram') {
+            if (blank($rule->channel_target)) {
+                Log::warning('AlertEvaluator: no channel_target (chat_id) configured for telegram rule.', [
+                    'rule_id' => $rule->id,
+                ]);
+                return;
+            }
+            $notifiable = $notifiable->route('telegram', $rule->channel_target);
+        } else {
+            $alertEmail = \App\Models\Setting::get(\App\Models\Setting::ALERT_EMAIL);
+            if (blank($alertEmail)) {
+                Log::warning('AlertEvaluator: no alert_email setting configured, skipping notification.');
+                return;
+            }
+            $notifiable = $notifiable->route('mail', $alertEmail);
         }
-
-        $notifiable = (new \Illuminate\Notifications\AnonymousNotifiable)
-            ->route('mail', $alertEmail)
-            ->route('telegram', $alertEmail)
-            ->route('webhook', $alertEmail);
 
         $notifiable->notify(new AlertTriggered($rule, $event));
     }
