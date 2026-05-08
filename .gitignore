@@ -13,4 +13,4 @@ server/.phpunit.cache/
 server/.phpunit.result.cache
 
 # Docs
-docs/
+#docs/

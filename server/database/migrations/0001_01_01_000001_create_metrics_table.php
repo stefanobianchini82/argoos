@@ -29,8 +29,10 @@ return new class extends Migration
             $table->index(['host_id', 'collected_at'], 'idx_host_collected');
         });
 
-        // Add RANGE partitioning by month. p_initial catches all data until
-        // the cleanup job introduces real monthly partitions.
+        // MySQL requires every partition column to be part of the PRIMARY KEY.
+        // These must be two separate statements — MySQL rejects combining
+        // PRIMARY KEY changes with PARTITION BY in a single ALTER TABLE.
+        DB::statement('ALTER TABLE metrics DROP PRIMARY KEY, ADD PRIMARY KEY (id, collected_at)');
         DB::statement("
             ALTER TABLE metrics
             PARTITION BY RANGE (UNIX_TIMESTAMP(collected_at)) (

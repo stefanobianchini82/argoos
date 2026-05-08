@@ -15,16 +15,20 @@ func main() {
 		log.Fatalf("config: %v", err)
 	}
 
-	log.Printf("starting argoos-agent — host=%s interval=%ds output=%s",
-		cfg.HostLabel, cfg.CollectInterval, cfg.OutputFile)
+	var snd sender.Sender
+	if cfg.ServerURL != "" {
+		log.Printf("starting argoos-agent — host=%s interval=%ds mode=http target=%s",
+			cfg.HostLabel, cfg.CollectInterval, cfg.ServerURL)
+		snd = sender.NewHTTPSender(cfg.ServerURL, cfg.APIKey, cfg.RetryAttempts)
+	} else {
+		log.Printf("starting argoos-agent — host=%s interval=%ds mode=file output=%s",
+			cfg.HostLabel, cfg.CollectInterval, cfg.OutputFile)
+		snd = sender.NewFileSender(cfg.OutputFile)
+	}
 
 	col := collector.New()
 	col.Prime()
 	log.Println("collector primed")
-
-	// Phase 1: write metrics to a local file.
-	// Phase 2: replace with sender.NewHTTPSender(cfg.ServerURL, cfg.APIKey, cfg.RetryAttempts)
-	snd := sender.NewFileSender(cfg.OutputFile)
 
 	ticker := time.NewTicker(time.Duration(cfg.CollectInterval) * time.Second)
 	defer ticker.Stop()

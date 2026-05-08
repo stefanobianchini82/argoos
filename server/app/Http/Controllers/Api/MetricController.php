@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,10 +40,12 @@ class MetricController extends Controller
         /** @var Host $host */
         $host = $request->attributes->get('host');
 
-        DB::transaction(function () use ($host, $validated) {
+        $collectedAt = Carbon::parse($validated['collected_at'])->format('Y-m-d H:i:s');
+
+        DB::transaction(function () use ($host, $validated, $collectedAt) {
             Metric::create([
                 'host_id'          => $host->id,
-                'collected_at'     => $validated['collected_at'],
+                'collected_at'     => $collectedAt,
                 'cpu_usage'        => $validated['cpu_usage'],
                 'ram_used'         => $validated['ram_used'],
                 'ram_total'        => $validated['ram_total'],
@@ -61,7 +64,7 @@ class MetricController extends Controller
                 'total'        => $p['total'],
                 'used'         => $p['used'],
                 'free'         => $p['free'],
-                'collected_at' => $validated['collected_at'],
+                'collected_at' => $collectedAt,
             ], $validated['disk_partitions']);
 
             DiskPartition::insert($partitions);

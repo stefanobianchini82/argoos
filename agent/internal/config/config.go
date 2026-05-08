@@ -29,6 +29,16 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("COLLECT_INTERVAL must be >= 1")
 	}
 
+	httpMode := cfg.ServerURL != "" || cfg.APIKey != ""
+	if httpMode {
+		if cfg.ServerURL == "" {
+			return nil, fmt.Errorf("SERVER_URL is required when API_KEY is set")
+		}
+		if cfg.APIKey == "" {
+			return nil, fmt.Errorf("API_KEY is required when SERVER_URL is set")
+		}
+	}
+
 	return cfg, nil
 }
 

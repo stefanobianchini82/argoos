@@ -22,6 +22,7 @@ return new class extends Migration
             $table->index(['host_id', 'collected_at'], 'idx_host_collected');
         });
 
+        DB::statement('ALTER TABLE disk_partitions DROP PRIMARY KEY, ADD PRIMARY KEY (id, collected_at)');
         DB::statement("
             ALTER TABLE disk_partitions
             PARTITION BY RANGE (UNIX_TIMESTAMP(collected_at)) (
