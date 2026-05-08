@@ -1,1 +1,16 @@
+# Agent
+agent/output/
+
+# Server
+server/.env
+server/vendor/
+server/node_modules/
+server/storage/*.key
+server/public/build/
+server/public/hot/
+server/public/storage/
+server/.phpunit.cache/
+server/.phpunit.result.cache
+
+# Docs
 docs/
