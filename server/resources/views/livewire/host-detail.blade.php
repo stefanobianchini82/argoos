@@ -60,7 +60,7 @@
             &mdash; {{ $latestMetric->collected_at->format('Y-m-d H:i:s') }}
         </p>
 
-        {{-- Metrics grid --}}
+        {{-- Live metrics grid --}}
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
 
             <div class="bg-white rounded-xl border border-gray-200 p-4">
@@ -110,6 +110,75 @@
             </div>
 
         </div>
+
+        {{-- Historical charts --}}
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-semibold text-gray-700">History</h2>
+            <div class="flex items-center gap-1">
+                @foreach([['1h','1h'], ['6h','6h'], ['24h','24h'], ['7d','7d']] as [$val, $label])
+                    <button
+                        wire:click="setRange('{{ $val }}')"
+                        class="text-xs font-medium px-3 py-1 rounded-lg transition-colors
+                            {{ $range === $val
+                                ? 'bg-indigo-600 text-white'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-gray-200' }}"
+                    >
+                        {{ $label }}
+                    </button>
+                @endforeach
+            </div>
+        </div>
+
+        @if(count($chartData['labels']) === 0)
+            <div class="bg-white rounded-xl border border-gray-200 py-12 text-center text-sm text-gray-400 mb-8">
+                No data for this time range.
+            </div>
+        @else
+            <div
+                wire:ignore
+                x-data="metricCharts(@js($chartData))"
+                @charts-updated.window="update($event.detail.data)"
+            >
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+
+                    <div class="bg-white rounded-xl border border-gray-200 p-4">
+                        <p class="text-xs font-medium text-gray-500 mb-3">CPU Usage (%)</p>
+                        <div class="h-32">
+                            <canvas x-ref="cpuChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-gray-200 p-4">
+                        <p class="text-xs font-medium text-gray-500 mb-3">RAM Usage (%)</p>
+                        <div class="h-32">
+                            <canvas x-ref="ramChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-gray-200 p-4">
+                        <p class="text-xs font-medium text-gray-500 mb-3">Disk I/O (KB/s)</p>
+                        <div class="h-32">
+                            <canvas x-ref="diskChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-gray-200 p-4">
+                        <p class="text-xs font-medium text-gray-500 mb-3">Network (KB/s)</p>
+                        <div class="h-32">
+                            <canvas x-ref="netChart"></canvas>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 p-4 mb-8">
+                    <p class="text-xs font-medium text-gray-500 mb-3">Load Average (1m)</p>
+                    <div class="h-28">
+                        <canvas x-ref="loadChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        @endif
 
         {{-- Disk partitions --}}
         @if($latestPartitions->isNotEmpty())
