@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\AlertRule;
 
 class Host extends Model
 {
@@ -15,6 +16,7 @@ class Host extends Model
         'api_key',
         'api_key_prefix',
         'last_seen_at',
+        'last_offline_notified_at',
     ];
 
     protected $hidden = [
@@ -22,7 +24,8 @@ class Host extends Model
     ];
 
     protected $casts = [
-        'last_seen_at' => 'datetime',
+        'last_seen_at'             => 'datetime',
+        'last_offline_notified_at' => 'datetime',
     ];
 
     public function metrics(): HasMany
@@ -38,6 +41,11 @@ class Host extends Model
     public function diskPartitions(): HasMany
     {
         return $this->hasMany(DiskPartition::class);
+    }
+
+    public function alertRules(): HasMany
+    {
+        return $this->hasMany(AlertRule::class);
     }
 
     public function isOnline(): bool

@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class AlertEvent extends Model
+{
+    protected $fillable = [
+        'alert_rule_id',
+        'triggered_at',
+        'resolved_at',
+        'peak_value',
+    ];
+
+    protected $casts = [
+        'triggered_at' => 'datetime',
+        'resolved_at'  => 'datetime',
+        'peak_value'   => 'float',
+    ];
+
+    public function alertRule(): BelongsTo
+    {
+        return $this->belongsTo(AlertRule::class);
+    }
+
+    public function isResolved(): bool
+    {
+        return $this->resolved_at !== null;
+    }
+}

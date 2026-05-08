@@ -23,6 +23,10 @@
             </span>
         @endif
         <div class="flex items-center gap-2 ml-2">
+            <a href="{{ route('hosts.alerts', $this->host) }}"
+               class="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
+                Alerts
+            </a>
             <a href="/hosts/{{ $this->host->id }}/edit"
                class="text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
                 Edit
