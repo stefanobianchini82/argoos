@@ -10,6 +10,7 @@
         "laravel/framework": "^13.7",
         "laravel/horizon": "^5.46",
         "laravel/tinker": "^3.0",
+        "livewire/livewire": "^4.3",
         "predis/predis": "^3.4"
     },
     "require-dev": {

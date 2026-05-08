@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Host extends Model
 {
     protected $fillable = [
         'label',
+        'description',
         'ip',
         'api_key',
         'api_key_prefix',
@@ -28,9 +30,20 @@ class Host extends Model
         return $this->hasMany(Metric::class);
     }
 
+    public function latestMetric(): HasOne
+    {
+        return $this->hasOne(Metric::class)->latestOfMany('collected_at');
+    }
+
     public function diskPartitions(): HasMany
     {
         return $this->hasMany(DiskPartition::class);
+    }
+
+    public function isOnline(): bool
+    {
+        return $this->last_seen_at !== null
+            && $this->last_seen_at->diffInMinutes(now()) < 3;
     }
 
     /**
