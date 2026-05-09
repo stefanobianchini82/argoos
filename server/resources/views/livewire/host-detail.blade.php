@@ -1,8 +1,9 @@
 <div wire:poll.10s>
     {{-- Header --}}
-    <div class="mb-6">
-        <a href="/" class="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">← All hosts</a>
-    </div>
+    <x-breadcrumbs :items="[
+        ['label' => 'Hosts', 'url' => '/'],
+        ['label' => $this->host->label],
+    ]" />
 
     <div class="flex items-center gap-3 mb-8">
         <div class="min-w-0 flex-1">

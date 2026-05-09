@@ -1,7 +1,9 @@
 <div>
-    <div class="mb-6">
-        <a href="/hosts/{{ $this->host->id }}" class="text-sm text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 transition-colors">← {{ $this->host->label }}</a>
-    </div>
+    <x-breadcrumbs :items="[
+        ['label' => 'Hosts', 'url' => '/'],
+        ['label' => $this->host->label, 'url' => route('hosts.show', $this->host)],
+        ['label' => 'Edit'],
+    ]" />
 
     <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">Edit host</h1>
 
