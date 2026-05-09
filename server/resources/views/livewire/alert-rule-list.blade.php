@@ -44,7 +44,7 @@
                     @foreach($rules as $rule)
                         <tr class="{{ $rule->is_active ? '' : 'opacity-50' }}">
                             <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-medium">{{ $rule->metricLabel() }}</td>
-                            <td class="px-4 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">{{ $rule->operator }} {{ $rule->threshold }}</td>
+                            <td class="px-4 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">{{ $rule->operator }} {{ $rule->threshold }}{{ $rule->metric === 'disk_usage_percent' ? '%' : '' }}</td>
                             <td class="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{{ $rule->duration_minutes }}m</td>
                             <td class="px-4 py-3">
                                 <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full

@@ -14,12 +14,14 @@ class AlertEvent extends Model
         'triggered_at',
         'resolved_at',
         'peak_value',
+        'trigger_context',
     ];
 
     protected $casts = [
-        'triggered_at' => 'datetime',
-        'resolved_at'  => 'datetime',
-        'peak_value'   => 'float',
+        'triggered_at'    => 'datetime',
+        'resolved_at'     => 'datetime',
+        'peak_value'      => 'float',
+        'trigger_context' => 'array',
     ];
 
     public function alertRule(): BelongsTo

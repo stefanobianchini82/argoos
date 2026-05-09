@@ -12,13 +12,13 @@ class AlertEvaluator
 {
     public function evaluate(AlertRule $rule): void
     {
-        $avgValue = $this->queryAverage($rule);
+        [$value, $context] = $this->getValueAndContext($rule);
 
-        if ($avgValue === null) {
+        if ($value === null) {
             return;
         }
 
-        $exceeded = $this->compare($avgValue, $rule->operator, $rule->threshold);
+        $exceeded = $this->compare($value, $rule->operator, $rule->threshold);
 
         $openEvent = $rule->alertEvents()
             ->whereNull('resolved_at')
@@ -27,21 +27,31 @@ class AlertEvaluator
 
         if ($exceeded && $openEvent === null) {
             $event = AlertEvent::create([
-                'alert_rule_id' => $rule->id,
-                'triggered_at'  => now(),
-                'peak_value'    => $avgValue,
+                'alert_rule_id'   => $rule->id,
+                'triggered_at'    => now(),
+                'peak_value'      => $value,
+                'trigger_context' => $context ?: null,
             ]);
 
             $rule->update(['last_notified_at' => now()]);
 
             $this->sendNotification($rule, $event);
         } elseif ($exceeded && $openEvent !== null) {
-            if ($avgValue > ($openEvent->peak_value ?? 0)) {
-                $openEvent->update(['peak_value' => $avgValue]);
+            if ($value > ($openEvent->peak_value ?? 0)) {
+                $openEvent->update(['peak_value' => $value]);
             }
         } elseif (! $exceeded && $openEvent !== null) {
             $openEvent->update(['resolved_at' => now()]);
         }
+    }
+
+    private function getValueAndContext(AlertRule $rule): array
+    {
+        if ($rule->metric === 'disk_usage_percent') {
+            return $this->queryDiskUsage($rule);
+        }
+
+        return [$this->queryAverage($rule), []];
     }
 
     private function queryAverage(AlertRule $rule): ?float
@@ -56,6 +66,31 @@ class AlertEvaluator
         );
 
         return $result?->avg_value;
+    }
+
+    private function queryDiskUsage(AlertRule $rule): array
+    {
+        $since = now()->subMinutes($rule->duration_minutes);
+
+        $worst = DB::table('disk_partitions')
+            ->select('mount_point', DB::raw('AVG(used * 100.0 / total) as avg_pct'))
+            ->where('host_id', $rule->host_id)
+            ->where('collected_at', '>=', $since)
+            ->where('total', '>', 0)
+            ->groupBy('mount_point')
+            ->orderByDesc('avg_pct')
+            ->first();
+
+        if (! $worst) {
+            return [null, []];
+        }
+
+        $pct = round((float) $worst->avg_pct, 2);
+
+        return [
+            $pct,
+            ['mount_point' => $worst->mount_point, 'usage_pct' => $pct],
+        ];
     }
 
     private function compare(float $value, string $operator, float $threshold): bool

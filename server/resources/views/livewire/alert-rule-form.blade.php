@@ -17,13 +17,16 @@
             {{-- Metric --}}
             <div>
                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Metric</label>
-                <select wire:model="metric"
+                <select wire:model.live="metric"
                         class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="">Select a metric…</option>
                     @foreach($metrics as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
+                @if($metric === 'disk_usage_percent')
+                    <p class="text-xs text-indigo-500 dark:text-indigo-400 mt-1">The threshold is a percentage (0–100). The alert fires if any partition on this host exceeds the threshold for the specified duration.</p>
+                @endif
                 @error('metric') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </div>
 
@@ -40,9 +43,11 @@
                     @error('operator') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Threshold</label>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                        Threshold @if($metric === 'disk_usage_percent') (%) @endif
+                    </label>
                     <input type="number" step="any" wire:model="threshold"
-                           placeholder="e.g. 80"
+                           placeholder="{{ $metric === 'disk_usage_percent' ? 'e.g. 80' : 'e.g. 80' }}"
                            class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                     @error('threshold') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
                 </div>

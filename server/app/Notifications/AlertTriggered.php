@@ -28,17 +28,25 @@ class AlertTriggered extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $host     = $this->rule->host;
-        $metric   = $this->rule->metricLabel();
-        $operator = $this->rule->operator;
+        $host      = $this->rule->host;
+        $metric    = $this->rule->metricLabel();
+        $operator  = $this->rule->operator;
         $threshold = $this->rule->threshold;
-        $peak     = $this->event->peak_value;
+        $peak      = $this->event->peak_value;
+        $context   = $this->event->trigger_context;
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject("Alert: {$metric} on {$host->label}")
             ->greeting("Alert triggered on {$host->label}")
-            ->line("**{$metric}** {$operator} {$threshold} for {$this->rule->duration_minutes} minute(s).")
-            ->line("Current average value: **{$peak}**")
+            ->line("**{$metric}** {$operator} {$threshold} for {$this->rule->duration_minutes} minute(s).");
+
+        if (isset($context['mount_point'])) {
+            $mail->line("Partition: **{$context['mount_point']}** at {$context['usage_pct']}%");
+        } else {
+            $mail->line("Current average value: **{$peak}**");
+        }
+
+        return $mail
             ->line("Triggered at: {$this->event->triggered_at->format('Y-m-d H:i:s')} UTC")
             ->line('Log in to the Argoos dashboard to view details.');
     }
@@ -50,11 +58,16 @@ class AlertTriggered extends Notification
         $operator  = $this->rule->operator;
         $threshold = $this->rule->threshold;
         $peak      = $this->event->peak_value;
+        $context   = $this->event->trigger_context;
         $at        = $this->event->triggered_at->format('Y-m-d H:i:s');
+
+        $valueLine = isset($context['mount_point'])
+            ? "Partition <b>{$context['mount_point']}</b> at {$context['usage_pct']}%"
+            : "Current value: <b>{$peak}</b>";
 
         return "🚨 <b>Alert triggered on {$host->label}</b>\n\n"
             . "<b>{$metric}</b> {$operator} {$threshold} for {$this->rule->duration_minutes} minute(s).\n"
-            . "Current value: <b>{$peak}</b>\n"
+            . "{$valueLine}\n"
             . "Triggered at: {$at} UTC";
     }
 
@@ -73,12 +86,17 @@ class AlertTriggered extends Notification
         $operator  = $this->rule->operator;
         $threshold = $this->rule->threshold;
         $peak      = $this->event->peak_value;
+        $context   = $this->event->trigger_context;
         $at        = $this->event->triggered_at->format('Y-m-d H:i:s');
+
+        $valueLine = isset($context['mount_point'])
+            ? "Partition *{$context['mount_point']}* at {$context['usage_pct']}%"
+            : "Current value: *{$peak}*";
 
         return [
             'text' => ":rotating_light: *Alert triggered on {$host->label}*\n"
                 . "*{$metric}* {$operator} {$threshold} for {$this->rule->duration_minutes} minute(s).\n"
-                . "Current value: *{$peak}*\n"
+                . "{$valueLine}\n"
                 . "Triggered at: {$at} UTC",
         ];
     }

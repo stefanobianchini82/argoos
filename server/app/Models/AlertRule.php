@@ -12,15 +12,16 @@ class AlertRule extends Model
 {
     use HasFactory;
     public const METRICS = [
-        'cpu_usage'        => 'CPU Usage (%)',
-        'ram_used'         => 'RAM Used (bytes)',
-        'disk_read_bytes'  => 'Disk Read (bytes/s)',
-        'disk_write_bytes' => 'Disk Write (bytes/s)',
-        'net_rx_bytes'     => 'Network RX (bytes/s)',
-        'net_tx_bytes'     => 'Network TX (bytes/s)',
-        'load_avg_1'       => 'Load Avg 1m',
-        'load_avg_5'       => 'Load Avg 5m',
-        'load_avg_15'      => 'Load Avg 15m',
+        'cpu_usage'           => 'CPU Usage (%)',
+        'ram_used'            => 'RAM Used (bytes)',
+        'disk_read_bytes'     => 'Disk Read (bytes/s)',
+        'disk_write_bytes'    => 'Disk Write (bytes/s)',
+        'net_rx_bytes'        => 'Network RX (bytes/s)',
+        'net_tx_bytes'        => 'Network TX (bytes/s)',
+        'load_avg_1'          => 'Load Avg 1m',
+        'load_avg_5'          => 'Load Avg 5m',
+        'load_avg_15'         => 'Load Avg 15m',
+        'disk_usage_percent'  => 'Disk Usage (%)',
     ];
 
     public const OPERATORS = ['>', '<', '>=', '<='];
