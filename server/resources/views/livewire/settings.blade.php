@@ -4,7 +4,9 @@
         <p class="text-sm text-gray-400 dark:text-gray-500 mt-0.5">Global notification and integration settings</p>
     </div>
 
-    <form wire:submit="save" class="max-w-lg space-y-6">
+    <form wire:submit="save" class="space-y-6">
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
         <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-5">
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Notification Channels</h2>
@@ -143,6 +145,8 @@
                 </button>
             </div>
         </div>
+
+        </div>{{-- /grid --}}
 
         <div class="flex items-center gap-3">
             <button type="submit"
