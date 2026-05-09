@@ -20,22 +20,61 @@
             </div>
 
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Telegram Chat ID</label>
-                <input type="text"
-                       wire:model="telegramChatId"
-                       placeholder="e.g. -100123456789"
-                       class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Chat ID for Telegram notifications. Requires <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">TELEGRAM_BOT_TOKEN</code> in your environment. Leave blank to disable Telegram alerts.</p>
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">Telegram Chat ID</label>
+                    @if($telegramBotConfigured)
+                        <span class="text-xs font-medium text-green-600 dark:text-green-400">Bot configured ✓</span>
+                    @else
+                        <span class="text-xs font-medium text-amber-500 dark:text-amber-400">Bot token missing — set <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">TELEGRAM_BOT_TOKEN</code></span>
+                    @endif
+                </div>
+                <div class="flex gap-2">
+                    <input type="text"
+                           wire:model="telegramChatId"
+                           placeholder="e.g. -100123456789"
+                           class="flex-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="button"
+                            wire:click="testTelegramNotification"
+                            wire:loading.attr="disabled"
+                            wire:target="testTelegramNotification"
+                            @disabled(!$telegramBotConfigured || empty($telegramChatId))
+                            class="text-sm font-medium px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        <span wire:loading.remove wire:target="testTelegramNotification">Test</span>
+                        <span wire:loading wire:target="testTelegramNotification">…</span>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Chat ID for Telegram notifications. Leave blank to disable Telegram alerts.</p>
+                @if($telegramTestStatus === 'success')
+                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">{{ $telegramTestMessage }}</p>
+                @elseif($telegramTestStatus === 'error')
+                    <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $telegramTestMessage }}</p>
+                @endif
                 @error('telegramChatId') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </div>
 
             <div>
                 <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Slack Incoming Webhook URL</label>
-                <input type="url"
-                       wire:model="slackWebhookUrl"
-                       placeholder="https://hooks.slack.com/services/…"
-                       class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="flex gap-2">
+                    <input type="url"
+                           wire:model="slackWebhookUrl"
+                           placeholder="https://hooks.slack.com/services/…"
+                           class="flex-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="button"
+                            wire:click="testSlackNotification"
+                            wire:loading.attr="disabled"
+                            wire:target="testSlackNotification"
+                            @disabled(empty($slackWebhookUrl))
+                            class="text-sm font-medium px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        <span wire:loading.remove wire:target="testSlackNotification">Test</span>
+                        <span wire:loading wire:target="testSlackNotification">…</span>
+                    </button>
+                </div>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Webhook URL for Slack notifications. Leave blank to disable Slack alerts.</p>
+                @if($slackTestStatus === 'success')
+                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">{{ $slackTestMessage }}</p>
+                @elseif($slackTestStatus === 'error')
+                    <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $slackTestMessage }}</p>
+                @endif
                 @error('slackWebhookUrl') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </div>
         </div>
@@ -44,6 +83,28 @@
             <div>
                 <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Host Offline Notifications</h2>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Choose which channels fire when a host stops reporting metrics.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Offline threshold (minutes)</label>
+                    <input type="number"
+                           wire:model="hostOfflineOfflineMinutes"
+                           min="1" max="1440"
+                           class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Minutes without metrics before a host is considered offline.</p>
+                    @error('hostOfflineOfflineMinutes') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Re-notify interval (minutes)</label>
+                    <input type="number"
+                           wire:model="hostOfflineRenotifyMinutes"
+                           min="1" max="1440"
+                           class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Minutes between repeated offline notifications for the same host.</p>
+                    @error('hostOfflineRenotifyMinutes') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                </div>
             </div>
 
             <div class="flex items-center justify-between">

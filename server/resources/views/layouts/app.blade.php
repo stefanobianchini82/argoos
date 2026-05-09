@@ -12,7 +12,8 @@
     <header class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-2">
             <a href="/" class="flex items-center">
-                <img src="/images/argoos_logo_no_payoff.svg" alt="Argoos" class="h-9 w-auto">
+                <img src="/images/argoos_logo_no_payoff.svg"      alt="Argoos" class="h-9 w-auto dark:hidden">
+                <img src="/images/argoos_logo_no_payoff_dark.svg" alt="Argoos" class="h-9 w-auto hidden dark:block">
                 <span class="font-semibold text-sm tracking-tight pl-2 dark:text-gray-300">| Self-Hosted Monitoring</span>
             </a>
             <nav class="ml-auto flex items-center gap-4">

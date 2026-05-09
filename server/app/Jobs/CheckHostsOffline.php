@@ -31,12 +31,15 @@ class CheckHostsOffline implements ShouldQueue
             return;
         }
 
+        $offlineMinutes  = max(1, (int) Setting::get(Setting::HOST_OFFLINE_OFFLINE_MINUTES, 3));
+        $renotifyMinutes = max(1, (int) Setting::get(Setting::HOST_OFFLINE_RENOTIFY_MINUTES, 10));
+
         Host::query()
             ->whereNotNull('last_seen_at')
-            ->where('last_seen_at', '<', now()->subMinutes(3))
-            ->where(function ($q) {
+            ->where('last_seen_at', '<', now()->subMinutes($offlineMinutes))
+            ->where(function ($q) use ($renotifyMinutes) {
                 $q->whereNull('last_offline_notified_at')
-                  ->orWhere('last_offline_notified_at', '<', now()->subMinutes(10));
+                  ->orWhere('last_offline_notified_at', '<', now()->subMinutes($renotifyMinutes));
             })
             ->each(function (Host $host) use ($alertEmail, $telegramChatId, $slackWebhookUrl, $hasEmail, $hasTelegram, $hasSlack) {
                 $host->update(['last_offline_notified_at' => now()]);
