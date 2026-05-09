@@ -70,16 +70,22 @@ class AlertEvaluator
 
     private function queryDiskUsage(AlertRule $rule): array
     {
-        $since = now()->subMinutes($rule->duration_minutes);
+        $since    = now()->subMinutes($rule->duration_minutes);
+        $excluded = $rule->excluded_partitions ?? [];
 
-        $worst = DB::table('disk_partitions')
+        $query = DB::table('disk_partitions')
             ->select('mount_point', DB::raw('AVG(used * 100.0 / total) as avg_pct'))
             ->where('host_id', $rule->host_id)
             ->where('collected_at', '>=', $since)
             ->where('total', '>', 0)
             ->groupBy('mount_point')
-            ->orderByDesc('avg_pct')
-            ->first();
+            ->orderByDesc('avg_pct');
+
+        if (! empty($excluded)) {
+            $query->whereNotIn('mount_point', $excluded);
+        }
+
+        $worst = $query->first();
 
         if (! $worst) {
             return [null, []];

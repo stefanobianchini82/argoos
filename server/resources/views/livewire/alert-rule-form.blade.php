@@ -30,6 +30,17 @@
                 @error('metric') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </div>
 
+            @if($metric === 'disk_usage_percent')
+            {{-- Excluded partitions --}}
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Excluded partitions</label>
+                <input type="text" wire:model="excludedPartitions"
+                       placeholder="/boot, /boot/efi"
+                       class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Comma-separated mount points to ignore (e.g. /boot, /boot/efi).</p>
+            </div>
+            @endif
+
             {{-- Operator + Threshold --}}
             <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -76,12 +87,20 @@
 
             {{-- Channel target --}}
             <div>
-                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                    @if($channel === 'email') Email address
-                    @elseif($channel === 'telegram') Telegram Chat ID
-                    @else Webhook URL
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-medium text-gray-600 dark:text-gray-400">
+                        @if($channel === 'email') Email address
+                        @elseif($channel === 'telegram') Telegram Chat ID
+                        @else Webhook URL
+                        @endif
+                    </label>
+                    @if($settingValue)
+                        <button type="button" wire:click="fillFromSettings"
+                                class="text-xs text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">
+                            Use from settings
+                        </button>
                     @endif
-                </label>
+                </div>
                 <input type="text" wire:model="channelTarget"
                        placeholder="{{ $channel === 'email' ? 'you@example.com' : ($channel === 'telegram' ? '123456789' : 'https://…') }}"
                        class="w-full text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500" />

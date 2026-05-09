@@ -33,6 +33,7 @@ class AlertRule extends Model
         'metric',
         'operator',
         'threshold',
+        'excluded_partitions',
         'duration_minutes',
         'channel',
         'channel_target',
@@ -41,9 +42,10 @@ class AlertRule extends Model
     ];
 
     protected $casts = [
-        'is_active'        => 'boolean',
-        'last_notified_at' => 'datetime',
-        'threshold'        => 'float',
+        'is_active'            => 'boolean',
+        'last_notified_at'     => 'datetime',
+        'threshold'            => 'float',
+        'excluded_partitions'  => 'array',
     ];
 
     public function host(): BelongsTo

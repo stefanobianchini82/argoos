@@ -306,3 +306,109 @@ describe('AlertEvaluator::evaluate() — disk_usage_percent', function () {
         expect($event->trigger_context['mount_point'])->toBe('/data');
     });
 });
+
+describe('AlertEvaluator::evaluate() — disk_usage_percent excluded_partitions', function () {
+    it('ignores an excluded partition even if it exceeds the threshold', function () {
+        $host = Host::factory()->create();
+
+        $rule = AlertRule::factory()
+            ->forMetric('disk_usage_percent', '>', 80)
+            ->create([
+                'host_id'              => $host->id,
+                'duration_minutes'     => 5,
+                'excluded_partitions'  => ['/boot'],
+            ]);
+
+        $total = 100 * 1024 * 1024 * 1024;
+
+        DiskPartition::factory()->create([
+            'host_id'      => $host->id,
+            'mount_point'  => '/boot',
+            'total'        => $total,
+            'used'         => (int) ($total * 0.95),
+            'free'         => (int) ($total * 0.05),
+            'collected_at' => now()->subMinutes(1),
+        ]);
+
+        $this->evaluator->evaluate($rule);
+
+        expect(AlertEvent::count())->toBe(0);
+    });
+
+    it('triggers on a non-excluded partition when an excluded one is also present', function () {
+        $host = Host::factory()->create();
+        Setting::set(Setting::ALERT_EMAIL, 'alert@example.com');
+
+        $rule = AlertRule::factory()
+            ->forMetric('disk_usage_percent', '>', 80)
+            ->create([
+                'host_id'              => $host->id,
+                'duration_minutes'     => 5,
+                'channel'              => 'email',
+                'channel_target'       => 'alert@example.com',
+                'excluded_partitions'  => ['/boot'],
+            ]);
+
+        $total = 100 * 1024 * 1024 * 1024;
+
+        DiskPartition::factory()->create([
+            'host_id'      => $host->id,
+            'mount_point'  => '/boot',
+            'total'        => $total,
+            'used'         => (int) ($total * 0.95),
+            'free'         => (int) ($total * 0.05),
+            'collected_at' => now()->subMinutes(1),
+        ]);
+
+        DiskPartition::factory()->create([
+            'host_id'      => $host->id,
+            'mount_point'  => '/data',
+            'total'        => $total,
+            'used'         => (int) ($total * 0.90),
+            'free'         => (int) ($total * 0.10),
+            'collected_at' => now()->subMinutes(1),
+        ]);
+
+        $this->evaluator->evaluate($rule);
+
+        $event = AlertEvent::where('alert_rule_id', $rule->id)->first();
+        expect($event)->not->toBeNull();
+        expect($event->trigger_context['mount_point'])->toBe('/data');
+    });
+
+    it('creates no event when all non-excluded partitions are below the threshold', function () {
+        $host = Host::factory()->create();
+
+        $rule = AlertRule::factory()
+            ->forMetric('disk_usage_percent', '>', 80)
+            ->create([
+                'host_id'              => $host->id,
+                'duration_minutes'     => 5,
+                'excluded_partitions'  => ['/boot'],
+            ]);
+
+        $total = 100 * 1024 * 1024 * 1024;
+
+        DiskPartition::factory()->create([
+            'host_id'      => $host->id,
+            'mount_point'  => '/boot',
+            'total'        => $total,
+            'used'         => (int) ($total * 0.95),
+            'free'         => (int) ($total * 0.05),
+            'collected_at' => now()->subMinutes(1),
+        ]);
+
+        DiskPartition::factory()->create([
+            'host_id'      => $host->id,
+            'mount_point'  => '/',
+            'total'        => $total,
+            'used'         => (int) ($total * 0.50),
+            'free'         => (int) ($total * 0.50),
+            'collected_at' => now()->subMinutes(1),
+        ]);
+
+        $this->evaluator->evaluate($rule);
+
+        expect(AlertEvent::count())->toBe(0);
+    });
+});
