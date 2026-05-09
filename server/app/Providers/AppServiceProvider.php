@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Channels\SlackChannel;
 use App\Channels\TelegramChannel;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\ServiceProvider;
@@ -17,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->resolving(ChannelManager::class, function (ChannelManager $manager) {
             $manager->extend('telegram', fn () => new TelegramChannel());
+            $manager->extend('slack', fn () => new SlackChannel());
         });
     }
 }

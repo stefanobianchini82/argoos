@@ -23,7 +23,7 @@ class AlertRule extends Model
 
     public const OPERATORS = ['>', '<', '>=', '<='];
 
-    public const CHANNELS = ['email', 'telegram', 'webhook'];
+    public const CHANNELS = ['email', 'telegram', 'webhook', 'slack'];
 
     protected $fillable = [
         'host_id',

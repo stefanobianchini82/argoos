@@ -11,16 +11,20 @@ class Settings extends Component
 {
     public string $alertEmail              = '';
     public string $telegramChatId          = '';
+    public string $slackWebhookUrl         = '';
     public bool   $hostOfflineEmailEnabled    = true;
     public bool   $hostOfflineTelegramEnabled = false;
+    public bool   $hostOfflineSlackEnabled    = false;
 
     public bool $saved = false;
 
     protected array $rules = [
         'alertEmail'                 => ['nullable', 'email', 'max:255'],
         'telegramChatId'             => ['nullable', 'string', 'max:100'],
+        'slackWebhookUrl'            => ['nullable', 'url', 'max:500'],
         'hostOfflineEmailEnabled'    => ['boolean'],
         'hostOfflineTelegramEnabled' => ['boolean'],
+        'hostOfflineSlackEnabled'    => ['boolean'],
     ];
 
     protected array $messages = [
@@ -31,12 +35,17 @@ class Settings extends Component
     {
         $this->alertEmail              = Setting::get(Setting::ALERT_EMAIL, '');
         $this->telegramChatId          = Setting::get(Setting::TELEGRAM_CHAT_ID, '');
+        $this->slackWebhookUrl         = Setting::get(Setting::SLACK_WEBHOOK_URL, '');
         $this->hostOfflineEmailEnabled    = filter_var(
             Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true),
             FILTER_VALIDATE_BOOLEAN
         );
         $this->hostOfflineTelegramEnabled = filter_var(
             Setting::get(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, false),
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $this->hostOfflineSlackEnabled = filter_var(
+            Setting::get(Setting::HOST_OFFLINE_SLACK_ENABLED, false),
             FILTER_VALIDATE_BOOLEAN
         );
     }
@@ -47,8 +56,10 @@ class Settings extends Component
 
         Setting::set(Setting::ALERT_EMAIL,                   $this->alertEmail);
         Setting::set(Setting::TELEGRAM_CHAT_ID,              $this->telegramChatId);
+        Setting::set(Setting::SLACK_WEBHOOK_URL,             $this->slackWebhookUrl);
         Setting::set(Setting::HOST_OFFLINE_EMAIL_ENABLED,    $this->hostOfflineEmailEnabled ? '1' : '0');
         Setting::set(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, $this->hostOfflineTelegramEnabled ? '1' : '0');
+        Setting::set(Setting::HOST_OFFLINE_SLACK_ENABLED,    $this->hostOfflineSlackEnabled ? '1' : '0');
 
         $this->saved = true;
     }

@@ -6,6 +6,7 @@ use App\Models\AlertEvent;
 use App\Models\AlertRule;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Log;
 
 class AlertTriggered extends Notification
 {
@@ -20,6 +21,7 @@ class AlertTriggered extends Notification
             'email'    => ['mail'],
             'telegram' => ['telegram'],
             'webhook'  => ['webhook'],
+            'slack'    => ['slack'],
             default    => ['mail'],
         };
     }
@@ -58,10 +60,26 @@ class AlertTriggered extends Notification
 
     public function toWebhook(object $notifiable): void
     {
-        // Webhook notifications are not yet implemented.
         Log::warning('AlertTriggered: Webhook channel is not yet implemented.', [
             'rule_id' => $this->rule->id,
             'host'    => $this->rule->host?->label,
         ]);
+    }
+
+    public function toSlack(object $notifiable): array
+    {
+        $host      = $this->rule->host;
+        $metric    = $this->rule->metricLabel();
+        $operator  = $this->rule->operator;
+        $threshold = $this->rule->threshold;
+        $peak      = $this->event->peak_value;
+        $at        = $this->event->triggered_at->format('Y-m-d H:i:s');
+
+        return [
+            'text' => ":rotating_light: *Alert triggered on {$host->label}*\n"
+                . "*{$metric}* {$operator} {$threshold} for {$this->rule->duration_minutes} minute(s).\n"
+                . "Current value: *{$peak}*\n"
+                . "Triggered at: {$at} UTC",
+        ];
     }
 }

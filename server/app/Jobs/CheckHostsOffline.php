@@ -17,14 +17,17 @@ class CheckHostsOffline implements ShouldQueue
     {
         $emailEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
         $telegramEnabled = filter_var(Setting::get(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
+        $slackEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_SLACK_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
 
-        $alertEmail     = Setting::get(Setting::ALERT_EMAIL);
-        $telegramChatId = Setting::get(Setting::TELEGRAM_CHAT_ID);
+        $alertEmail      = Setting::get(Setting::ALERT_EMAIL);
+        $telegramChatId  = Setting::get(Setting::TELEGRAM_CHAT_ID);
+        $slackWebhookUrl = Setting::get(Setting::SLACK_WEBHOOK_URL);
 
         $hasEmail    = $emailEnabled && filled($alertEmail);
         $hasTelegram = $telegramEnabled && filled($telegramChatId);
+        $hasSlack    = $slackEnabled && filled($slackWebhookUrl);
 
-        if (! $hasEmail && ! $hasTelegram) {
+        if (! $hasEmail && ! $hasTelegram && ! $hasSlack) {
             return;
         }
 
@@ -35,7 +38,7 @@ class CheckHostsOffline implements ShouldQueue
                 $q->whereNull('last_offline_notified_at')
                   ->orWhere('last_offline_notified_at', '<', now()->subMinutes(10));
             })
-            ->each(function (Host $host) use ($alertEmail, $telegramChatId, $hasEmail, $hasTelegram) {
+            ->each(function (Host $host) use ($alertEmail, $telegramChatId, $slackWebhookUrl, $hasEmail, $hasTelegram, $hasSlack) {
                 $host->update(['last_offline_notified_at' => now()]);
 
                 $notifiable = new AnonymousNotifiable;
@@ -48,7 +51,11 @@ class CheckHostsOffline implements ShouldQueue
                     $notifiable = $notifiable->route('telegram', $telegramChatId);
                 }
 
-                $notifiable->notify(new HostOffline($host, $hasEmail, $hasTelegram));
+                if ($hasSlack) {
+                    $notifiable = $notifiable->route('slack', $slackWebhookUrl);
+                }
+
+                $notifiable->notify(new HostOffline($host, $hasEmail, $hasTelegram, $hasSlack));
             });
     }
 }
