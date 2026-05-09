@@ -15,7 +15,7 @@ return new class extends Migration
             $table->enum('operator', ['>', '<', '>=', '<=']);
             $table->float('threshold');
             $table->unsignedInteger('duration_minutes')->default(5);
-            $table->enum('channel', ['email', 'telegram', 'webhook']);
+            $table->enum('channel', ['email', 'telegram', 'webhook', 'slack']);
             $table->string('channel_target', 255);
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_notified_at')->nullable();

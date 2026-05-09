@@ -164,12 +164,28 @@ composer run dev   # starts Artisan, Horizon, Pail (log viewer), and Vite concur
 
 ### Running Tests
 
+The server uses [PEST](https://pestphp.com/) as its test runner (89 tests, SQLite in-memory).
+
 ```bash
 cd server
-composer test
+
+# Run all tests
+./vendor/bin/pest
+
+# Unit tests only
+./vendor/bin/pest tests/Unit
+
+# Feature tests only
+./vendor/bin/pest tests/Feature
+
+# Run a specific test file
+./vendor/bin/pest tests/Feature/Api/AuthenticateAgentTest.php
+
+# With code coverage (requires Xdebug or PCOV)
+./vendor/bin/pest --coverage
 
 # In Docker:
-docker compose exec app composer test
+docker compose exec app ./vendor/bin/pest
 ```
 
 ---

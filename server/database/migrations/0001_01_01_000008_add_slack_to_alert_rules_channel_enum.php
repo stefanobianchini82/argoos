@@ -7,11 +7,16 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE alert_rules MODIFY COLUMN channel ENUM('email','telegram','webhook','slack') NOT NULL");
+        // SQLite does not support MODIFY COLUMN or ENUM — no-op on SQLite (used in tests).
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE alert_rules MODIFY COLUMN channel ENUM('email','telegram','webhook','slack') NOT NULL");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE alert_rules MODIFY COLUMN channel ENUM('email','telegram','webhook') NOT NULL");
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE alert_rules MODIFY COLUMN channel ENUM('email','telegram','webhook') NOT NULL");
+        }
     }
 };

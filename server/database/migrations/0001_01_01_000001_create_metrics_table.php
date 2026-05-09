@@ -30,15 +30,16 @@ return new class extends Migration
         });
 
         // MySQL requires every partition column to be part of the PRIMARY KEY.
-        // These must be two separate statements — MySQL rejects combining
-        // PRIMARY KEY changes with PARTITION BY in a single ALTER TABLE.
-        DB::statement('ALTER TABLE metrics DROP PRIMARY KEY, ADD PRIMARY KEY (id, collected_at)');
-        DB::statement("
-            ALTER TABLE metrics
-            PARTITION BY RANGE (UNIX_TIMESTAMP(collected_at)) (
-                PARTITION p_initial VALUES LESS THAN MAXVALUE
-            )
-        ");
+        // These statements are MySQL-specific and are skipped on SQLite (used in tests).
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE metrics DROP PRIMARY KEY, ADD PRIMARY KEY (id, collected_at)');
+            DB::statement("
+                ALTER TABLE metrics
+                PARTITION BY RANGE (UNIX_TIMESTAMP(collected_at)) (
+                    PARTITION p_initial VALUES LESS THAN MAXVALUE
+                )
+            ");
+        }
     }
 
     public function down(): void

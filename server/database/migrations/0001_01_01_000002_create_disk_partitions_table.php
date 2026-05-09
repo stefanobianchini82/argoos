@@ -19,16 +19,19 @@ return new class extends Migration
             $table->unsignedBigInteger('free')->nullable();
             $table->timestamp('collected_at');
 
-            $table->index(['host_id', 'collected_at'], 'idx_host_collected');
+            $table->index(['host_id', 'collected_at'], 'idx_dp_host_collected');
         });
 
-        DB::statement('ALTER TABLE disk_partitions DROP PRIMARY KEY, ADD PRIMARY KEY (id, collected_at)');
-        DB::statement("
-            ALTER TABLE disk_partitions
-            PARTITION BY RANGE (UNIX_TIMESTAMP(collected_at)) (
-                PARTITION p_initial VALUES LESS THAN MAXVALUE
-            )
-        ");
+        // MySQL-specific partitioning — skipped on SQLite (used in tests).
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE disk_partitions DROP PRIMARY KEY, ADD PRIMARY KEY (id, collected_at)');
+            DB::statement("
+                ALTER TABLE disk_partitions
+                PARTITION BY RANGE (UNIX_TIMESTAMP(collected_at)) (
+                    PARTITION p_initial VALUES LESS THAN MAXVALUE
+                )
+            ");
+        }
     }
 
     public function down(): void

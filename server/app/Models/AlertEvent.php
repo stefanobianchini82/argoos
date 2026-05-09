@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AlertEvent extends Model
 {
+    use HasFactory;
     protected $fillable = [
         'alert_rule_id',
         'triggered_at',
