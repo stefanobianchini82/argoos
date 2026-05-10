@@ -295,7 +295,7 @@ curl -s -X POST http://localhost:8080/api/v1/metrics \
 | 2 | ✅ Done | Livewire dashboard: host list, per-host metrics, disk partitions |
 | 3 | ✅ Done | Historical Chart.js graphs, time range selector |
 | 4 | ✅ Done | Alert rules, threshold evaluator, Telegram & Slack notifications |
-| 5 | Pending | Agent image on GHCR, full Docker Compose with agent service, API docs |
+| 5 | ✅ Done | Agent image on GHCR, full Docker Compose with agent service, API docs |
 | 6 | Pending | Multi-disk views, top processes, HTTP uptime checks |
 
 ---
