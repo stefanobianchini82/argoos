@@ -2,7 +2,7 @@ name: Server — Tests & Lint
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "server/**"
       - ".github/workflows/server.yml"
