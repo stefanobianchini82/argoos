@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'agent_rate_limit' => env('AGENT_RATE_LIMIT_PER_MINUTE', 300),
+
 ];
