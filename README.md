@@ -10,10 +10,8 @@ Argoos is made of two independent components:
 
 | Component | Language | Role |
 |-----------|----------|------|
-| **Server** | Laravel 13 (PHP 8.3) | Receives, stores, and displays metrics. Runs the dashboard, alert engine, and notification dispatch. |
+| **Server** | Laravel 13 (PHP 8.4) | Receives, stores, and displays metrics. Runs the dashboard, alert engine, and notification dispatch. |
 | **Agent** | Go 1.22 | Collects CPU, RAM, disk, network metrics every N seconds and ships them to the server via HTTP. ~8 MB Docker image, zero persistent state. |
-
-### How it works
 
 ```
 [Server A]  argoos-agent ──┐
@@ -42,7 +40,7 @@ Argoos is made of two independent components:
 | Layer | Technology |
 |-------|------------|
 | Agent | Go 1.22, gopsutil, Docker (scratch image) |
-| Server framework | Laravel 13, PHP 8.3, Livewire |
+| Server framework | Laravel 13, PHP 8.4, Livewire |
 | Database | MySQL 8.0 (RANGE partitioning) |
 | Queue | Redis 7 + Laravel Horizon |
 | Frontend | Tailwind CSS, Chart.js, Vite |
@@ -52,6 +50,8 @@ Argoos is made of two independent components:
 ---
 
 ## Quick Start
+
+All production images are published to GHCR. No local build required.
 
 ### Prerequisites
 
@@ -65,21 +65,34 @@ git clone https://github.com/stefanobianchini82/argoos.git
 cd argoos
 ```
 
-### 2. Configure the server
+### 2. Configure the environment
 
 ```bash
-cd server
 cp .env.example .env
-# Set at minimum: DB_PASSWORD, DB_ROOT_PASSWORD, DASHBOARD_PASSWORD
 ```
+
+Generate an application key and paste it into `APP_KEY`:
+
+```bash
+docker run --rm ghcr.io/stefanobianchini82/argoos-server:latest php artisan key:generate --show
+```
+
+Edit `.env` and set at minimum:
+
+| Variable | Description |
+|----------|-------------|
+| `APP_KEY` | Generated above |
+| `DB_PASSWORD` | MySQL user password |
+| `DB_ROOT_PASSWORD` | MySQL root password |
+| `DASHBOARD_PASSWORD` | Basic auth password for the dashboard |
 
 ### 3. Start the stack
 
 ```bash
-docker compose up --build -d
+docker compose up -d
 ```
 
-This starts five services: `nginx` (port 8080), `app` (PHP-FPM), `mysql`, `redis`, and `horizon`.
+This pulls and starts six services: `nginx` (port 8080), `app` (PHP-FPM), `mysql`, `redis`, `horizon`.
 
 ### 4. Run migrations
 
@@ -97,102 +110,43 @@ docker compose exec app php artisan tinker
 $key = bin2hex(random_bytes(32));
 
 App\Models\Host::create([
-    'label'          => 'server1',
+    'label'          => 'my-server',
     'ip'             => '192.168.1.10',
     'api_key'        => password_hash($key, PASSWORD_BCRYPT),
     'api_key_prefix' => substr($key, 0, 12),
 ]);
 
-echo $key; // save this — you'll need it for the agent
+echo $key; // save this
 ```
 
-### 6. Run the agent on the host you want to monitor
+### 6. Open the dashboard
+
+```
+http://<server-ip>:8080
+```
+
+Credentials: `DASHBOARD_USER` / `DASHBOARD_PASSWORD` from `.env` (default user: `admin`).
+
+To start receiving metrics, deploy the agent on each host you want to monitor — see [Monitoring Additional Hosts](#monitoring-additional-hosts) below.
+
+---
+
+## Monitoring Hosts
+
+To monitor servers, run the agent directly on each one. No server-side components needed.
 
 ```bash
-docker run --rm \
-  -e SERVER_URL=http://your-server:8080/api/v1/metrics \
-  -e API_KEY=<key-from-step-5> \
-  -e HOST_LABEL=server1 \
+docker run -d --restart unless-stopped \
+  -e SERVER_URL=http://<server-ip>:8080/api/v1/metrics \
+  -e API_KEY=<key-generated-for-this-host> \
+  -e HOST_LABEL=web-server-1 \
   -e COLLECT_INTERVAL=30 \
   ghcr.io/stefanobianchini82/argoos-agent:latest
 ```
 
-**Dashboard**: [http://localhost:8080](http://localhost:8080) (credentials from `DASHBOARD_USER` / `DASHBOARD_PASSWORD` in `.env`)
+Repeat steps 5–6 of the Quick Start (via tinker) to generate a separate API key for each host.
 
----
-
-## Server Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DB_HOST` | MySQL host | `mysql` |
-| `DB_DATABASE` | Database name | `argoos` |
-| `DB_USERNAME` | MySQL user | `argoos` |
-| `DB_PASSWORD` | MySQL password | — |
-| `DB_ROOT_PASSWORD` | MySQL root password | — |
-| `REDIS_HOST` | Redis host | `redis` |
-| `QUEUE_CONNECTION` | Queue driver | `redis` |
-| `DASHBOARD_USER` | Basic auth username | `admin` |
-| `DASHBOARD_PASSWORD` | Basic auth password | — |
-| `TELEGRAM_BOT_TOKEN` | Telegram Bot token for alerts | — |
-| `SLACK_WEBHOOK_URL` | Slack Incoming Webhook URL | — |
-
-### Docker Services
-
-| Service | Image | Exposed Port |
-|---------|-------|-------------|
-| `nginx` | nginx:1.27-alpine | 8080 → 80 |
-| `app` | PHP-FPM 8.3-alpine | — |
-| `mysql` | mysql:8.0 | 3306 |
-| `redis` | redis:7-alpine | — |
-| `horizon` | PHP-FPM 8.3-alpine | — |
-
-### Local Development (without Docker)
-
-```bash
-cd server
-composer install
-cp .env.example .env
-# Set DB_CONNECTION=sqlite, DB_DATABASE=database/database.sqlite
-touch database/database.sqlite
-php artisan key:generate
-php artisan migrate
-composer run dev   # starts Artisan, Horizon, Pail (log viewer), and Vite concurrently
-```
-
-### Running Tests
-
-The server uses [PEST](https://pestphp.com/) as its test runner (89 tests, SQLite in-memory).
-
-```bash
-cd server
-
-# Run all tests
-./vendor/bin/pest
-
-# Unit tests only
-./vendor/bin/pest tests/Unit
-
-# Feature tests only
-./vendor/bin/pest tests/Feature
-
-# Run a specific test file
-./vendor/bin/pest tests/Feature/Api/AuthenticateAgentTest.php
-
-# With code coverage (requires Xdebug or PCOV)
-./vendor/bin/pest --coverage
-
-# In Docker:
-docker compose exec app ./vendor/bin/pest
-```
-
----
-
-## Agent Configuration
-
-The agent is configured entirely via environment variables. No config files, no persistent state.
+### Agent configuration
 
 | Variable | Description | Default |
 |----------|-------------|---------|
@@ -201,32 +155,33 @@ The agent is configured entirely via environment variables. No config files, no 
 | `HOST_LABEL` | Human-readable host name | system hostname |
 | `COLLECT_INTERVAL` | Seconds between collections | `30` |
 | `RETRY_ATTEMPTS` | Max HTTP retries (exponential backoff) | `3` |
-| `OUTPUT_FILE` | **File mode only** — path or `stdout` | `/data/metrics.jsonl` |
 
-**Mode selection** is automatic:
-- Both `SERVER_URL` + `API_KEY` set → **HTTP mode** (POST to server)
-- Neither set → **File mode** (write JSONL to `OUTPUT_FILE`)
-- Only one set → configuration error
+---
 
-### Building the Agent
+## Server Configuration
 
-```bash
-cd agent
-docker build -t argoos-agent:latest .
-# Result: ~8 MB image (FROM scratch, static binary + CA certs)
-```
+### Environment variables (`.env`)
 
-### Debugging with File Mode
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `APP_KEY` | Laravel application key | — |
+| `DB_DATABASE` | Database name | `argoos` |
+| `DB_USERNAME` | MySQL user | `argoos` |
+| `DB_PASSWORD` | MySQL password | — |
+| `DB_ROOT_PASSWORD` | MySQL root password | — |
+| `DASHBOARD_USER` | Basic auth username | `admin` |
+| `DASHBOARD_PASSWORD` | Basic auth password | — |
+| `TELEGRAM_BOT_TOKEN` | Telegram Bot token for alerts | — |
 
-Inspect collected metrics without a running server:
+### Docker services
 
-```bash
-docker run --rm \
-  -e HOST_LABEL=my-server \
-  -e COLLECT_INTERVAL=10 \
-  -e OUTPUT_FILE=stdout \
-  argoos-agent:latest
-```
+| Service | Image | Exposed port |
+|---------|-------|-------------|
+| `nginx` | nginx:1.27-alpine | 8080 → 80 |
+| `app` | ghcr.io/…/argoos-server:latest | — |
+| `horizon` | ghcr.io/…/argoos-server:latest | — |
+| `mysql` | mysql:8.0 | 3306 |
+| `redis` | redis:7-alpine | — |
 
 ---
 
@@ -254,7 +209,7 @@ Disk and network values are **deltas** relative to the previous interval.
 Authenticated via `X-API-Key` header. Returns `202 Accepted` immediately; persistence is handled asynchronously by Horizon.
 
 ```bash
-curl -s -X POST http://localhost:8080/api/v1/metrics \
+curl -s -X POST http://<server-ip>:8080/api/v1/metrics \
   -H 'Content-Type: application/json' \
   -H 'X-API-Key: YOUR_KEY' \
   -d '{
@@ -284,6 +239,55 @@ curl -s -X POST http://localhost:8080/api/v1/metrics \
 **MySQL RANGE partitioning**: The `metrics` and `disk_partitions` tables are partitioned by `UNIX_TIMESTAMP(collected_at)` monthly. Retention cleanup is an instant metadata operation (`ALTER TABLE DROP PARTITION`) rather than a slow `DELETE` across millions of rows.
 
 **Async ingestion**: The API controller validates the payload and returns `202` immediately. A Horizon job handles the DB write asynchronously, keeping agent POST latency low even under load.
+
+---
+
+## Development
+
+The following instructions are for contributors building from source.
+
+### Server (local, without Docker)
+
+```bash
+cd server
+composer install
+cp .env.example .env
+# Set DB_CONNECTION=sqlite, DB_DATABASE=database/database.sqlite
+touch database/database.sqlite
+php artisan key:generate
+php artisan migrate
+composer run dev   # starts Artisan, Horizon, Pail, and Vite concurrently
+```
+
+### Running tests
+
+The server uses [PEST](https://pestphp.com/) (89 tests, SQLite in-memory).
+
+```bash
+cd server
+./vendor/bin/pest
+
+# In Docker:
+docker compose exec app ./vendor/bin/pest
+```
+
+### Building the agent image
+
+```bash
+cd agent
+docker build -t argoos-agent:latest .
+# Result: ~8 MB image (FROM scratch, static binary + CA certs)
+```
+
+### Debugging agent output (file mode)
+
+```bash
+docker run --rm \
+  -e HOST_LABEL=my-server \
+  -e COLLECT_INTERVAL=10 \
+  -e OUTPUT_FILE=stdout \
+  argoos-agent:latest
+```
 
 ---
 

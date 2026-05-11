@@ -91,6 +91,20 @@ X-API-Key: <chiave in chiaro 64 char>
 
 ---
 
+## Rate Limiting
+
+L'endpoint `POST /api/v1/metrics` applica un rate limit **per indirizzo IP** prima dell'autenticazione. Le richieste oltre la soglia vengono bloccate su Redis senza toccare il DB.
+
+| Variabile | Default | Descrizione |
+|---|---|---|
+| `AGENT_RATE_LIMIT_PER_MINUTE` | `300` | Richieste/minuto per IP. `0` = disabilitato |
+
+Le richieste throttlate ricevono `429 Too Many Requests` con header `Retry-After`.
+
+Un agente in condizioni normali (intervallo 30 s) fa ~2 req/min, quindi la soglia di default è ampiamente sufficiente.
+
+---
+
 ## Stack Docker
 
 | Servizio | Immagine | Porta esposta |
@@ -190,6 +204,7 @@ docker compose exec mysql mysql -u argoos -psecret argoos \
 | `DB_ROOT_PASSWORD` | Password root MySQL | — |
 | `REDIS_HOST` | Host Redis | `redis` |
 | `QUEUE_CONNECTION` | Driver code | `redis` |
+| `AGENT_RATE_LIMIT_PER_MINUTE` | Rate limit per IP su `/api/v1/metrics` | `300` |
 
 ---
 
