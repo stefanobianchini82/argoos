@@ -4,6 +4,7 @@ use App\Http\Middleware\AuthenticateAgent;
 use App\Http\Middleware\BasicAuth;
 use App\Jobs\CheckAlertRules;
 use App\Jobs\CheckHostsOffline;
+use App\Jobs\PruneOldMetrics;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -25,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->job(CheckAlertRules::class)->everyMinute();
         $schedule->job(CheckHostsOffline::class)->everyMinute();
+        $schedule->job(PruneOldMetrics::class)->monthly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
