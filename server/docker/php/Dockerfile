@@ -12,6 +12,18 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+FROM node:22-alpine AS node-build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY vite.config.js ./
+COPY resources/ ./resources/
+
+RUN npm run build
+
 FROM base AS production
 
 COPY composer.json composer.lock ./
@@ -21,3 +33,11 @@ COPY . .
 RUN composer run-script post-autoload-dump || true
 
 RUN chown -R www-data:www-data storage bootstrap/cache
+
+COPY --from=node-build /app/public/build /var/www/html-assets/public/build
+
+COPY docker/php/entrypoint.sh /usr/local/bin/argoos-entrypoint
+RUN chmod +x /usr/local/bin/argoos-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/argoos-entrypoint"]
+CMD ["php-fpm"]
