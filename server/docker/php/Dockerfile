@@ -12,6 +12,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+FROM base AS composer-deps
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --optimize-autoloader --no-interaction
+
 FROM node:22-alpine AS node-build
 
 WORKDIR /app
@@ -21,6 +26,7 @@ RUN npm ci
 
 COPY vite.config.js ./
 COPY resources/ ./resources/
+COPY --from=composer-deps /var/www/html/vendor/livewire/livewire/dist/ ./vendor/livewire/livewire/dist/
 
 RUN npm run build
 
