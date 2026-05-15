@@ -3,7 +3,10 @@ services:
 
   app:
     image: ghcr.io/stefanobianchini82/argoos-server:latest
+    container_name: argoos-server
     restart: unless-stopped
+    volumes:
+      - public_assets:/var/www/html/public
     environment:
       APP_ENV: "${APP_ENV:-production}"
       APP_KEY: "${APP_KEY}"
@@ -11,16 +14,18 @@ services:
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: "${DB_DATABASE:-argoos}"
-      DB_USERNAME: "${DB_USERNAME:-argoos}"
+      DB_DATABASE: "${DB_DATABASE}"
+      DB_USERNAME: "${DB_USERNAME}"
       DB_PASSWORD: "${DB_PASSWORD}"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
       CACHE_STORE: redis
-      DASHBOARD_USER: "${DASHBOARD_USER:-admin}"
+      DASHBOARD_USER: "${DASHBOARD_USER}"
       DASHBOARD_PASSWORD: "${DASHBOARD_PASSWORD}"
-      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN:-}"
+      TELEGRAM_BOT_TOKEN: "${TELEGRAM_BOT_TOKEN}"
+    env_file:
+      - .env
     depends_on:
       mysql:
         condition: service_healthy
@@ -29,34 +34,33 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
+    container_name: argoos-nginx
     restart: unless-stopped
-    ports:
-      - "8080:80"
     volumes:
       - ./server/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - public_assets:/var/www/html/public:ro
     depends_on:
       - app
+    environment:
+      VIRTUAL_HOST: "argoos.simplenetworks.it"
+      LETSENCRYPT_HOST: "argoos.simplenetworks.it"
+      LETSENCRYPT_EMAIL: dev@simplenetworks.it
 
   mysql:
     image: mysql:8.0
+    container_name: argoos-mysql
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: "${DB_DATABASE:-argoos}"
-      MYSQL_USER: "${DB_USERNAME:-argoos}"
+      MYSQL_DATABASE: "${DB_DATABASE}"
+      MYSQL_USER: "${DB_USERNAME}"
       MYSQL_PASSWORD: "${DB_PASSWORD}"
-      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
     volumes:
       - mysql_data:/var/lib/mysql
-    ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USERNAME:-argoos}", "-p${DB_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7-alpine
+    container_name: argoos-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -64,6 +68,7 @@ services:
 
   horizon:
     image: ghcr.io/stefanobianchini82/argoos-server:latest
+    container_name: argoos-horizon
     restart: unless-stopped
     command: php artisan horizon
     environment:
@@ -72,8 +77,8 @@ services:
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
-      DB_DATABASE: "${DB_DATABASE:-argoos}"
-      DB_USERNAME: "${DB_USERNAME:-argoos}"
+      DB_DATABASE: "${DB_DATABASE}"
+      DB_USERNAME: "${DB_USERNAME}"
       DB_PASSWORD: "${DB_PASSWORD}"
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -87,3 +92,9 @@ services:
 volumes:
   mysql_data:
   redis_data:
+  public_assets:
+
+networks:
+  default:
+    name: nginx-proxy
+    external: true
