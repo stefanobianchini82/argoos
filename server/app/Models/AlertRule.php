@@ -22,6 +22,7 @@ class AlertRule extends Model
         'load_avg_5'          => 'Load Avg 5m',
         'load_avg_15'         => 'Load Avg 15m',
         'disk_usage_percent'  => 'Disk Usage (%)',
+        'ram_percent'         => 'RAM Usage (%)',
     ];
 
     public const OPERATORS = ['>', '<', '>=', '<='];

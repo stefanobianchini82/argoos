@@ -29,6 +29,8 @@
                 </select>
                 @if($metric === 'disk_usage_percent')
                     <p class="text-xs text-indigo-500 dark:text-indigo-400 mt-1">The threshold is a percentage (0–100). The alert fires if any partition on this host exceeds the threshold for the specified duration.</p>
+                @elseif($metric === 'ram_percent')
+                    <p class="text-xs text-indigo-500 dark:text-indigo-400 mt-1">The threshold is a percentage (0–100).</p>
                 @endif
                 @error('metric') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </div>
@@ -58,7 +60,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                        Threshold @if($metric === 'disk_usage_percent') (%) @endif
+                        Threshold @if(in_array($metric, ['disk_usage_percent', 'ram_percent'])) (%) @endif
                     </label>
                     <input type="number" step="any" wire:model="threshold"
                            placeholder="{{ $metric === 'disk_usage_percent' ? 'e.g. 80' : 'e.g. 80' }}"

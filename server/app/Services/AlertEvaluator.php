@@ -51,6 +51,10 @@ class AlertEvaluator
             return $this->queryDiskUsage($rule);
         }
 
+        if ($rule->metric === 'ram_percent') {
+            return [$this->queryRamPercent($rule), []];
+        }
+
         return [$this->queryAverage($rule), []];
     }
 
@@ -97,6 +101,20 @@ class AlertEvaluator
             $pct,
             ['mount_point' => $worst->mount_point, 'usage_pct' => $pct],
         ];
+    }
+
+    private function queryRamPercent(AlertRule $rule): ?float
+    {
+        $since = now()->subMinutes($rule->duration_minutes);
+
+        $result = DB::selectOne(
+            'SELECT AVG(ram_used * 100.0 / ram_total) AS avg_pct
+             FROM metrics
+             WHERE host_id = ? AND collected_at >= ? AND ram_total > 0',
+            [$rule->host_id, $since]
+        );
+
+        return $result?->avg_pct !== null ? round((float) $result->avg_pct, 2) : null;
     }
 
     private function compare(float $value, string $operator, float $threshold): bool
