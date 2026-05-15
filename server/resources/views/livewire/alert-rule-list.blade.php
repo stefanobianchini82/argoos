@@ -6,19 +6,88 @@
         ['label' => 'Alerts'],
     ]" />
 
-    <div class="flex items-center justify-between mb-8">
+    <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Alert Rules</h1>
             <p class="text-sm text-gray-400 dark:text-gray-500 mt-0.5">{{ $this->host->label }}</p>
         </div>
-        <a href="{{ route('hosts.alerts.create', $this->host) }}"
-           class="inline-flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-            </svg>
-            Add rule
-        </a>
+        <div class="flex items-center gap-2">
+            @if($this->otherHosts->isNotEmpty() && !$showCopyFrom)
+                <button wire:click="openCopyFrom"
+                        class="inline-flex items-center gap-1.5 text-sm font-medium border border-indigo-300 dark:border-indigo-700 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg px-4 py-2 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    Copia da
+                </button>
+            @endif
+            <a href="{{ route('hosts.alerts.create', $this->host) }}"
+               class="inline-flex items-center gap-1.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add rule
+            </a>
+        </div>
     </div>
+
+    {{-- Pannello "Copia da" --}}
+    @if($showCopyFrom)
+        <div class="mb-6 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-4">
+            @if(!$selectedSourceHostId)
+                {{-- Stato 1: selezione host sorgente --}}
+                <div class="flex items-center gap-3">
+                    <span class="text-sm font-medium text-indigo-700 dark:text-indigo-300 shrink-0">Copia da:</span>
+                    <select wire:model.live="selectedSourceHostId"
+                            class="flex-1 text-sm rounded-lg border border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Seleziona un server...</option>
+                        @foreach($this->otherHosts as $h)
+                            <option value="{{ $h->id }}">{{ $h->label }}</option>
+                        @endforeach
+                    </select>
+                    <button wire:click="cancelCopy"
+                            class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors shrink-0">
+                        Annulla
+                    </button>
+                </div>
+            @else
+                {{-- Stato 2: conferma copia --}}
+                <div class="flex items-center justify-between gap-4">
+                    <div class="text-sm">
+                        @if($newRulesToCopy > 0)
+                            <p class="text-indigo-700 dark:text-indigo-300">
+                                Stai per copiare <strong>{{ $newRulesToCopy }} {{ $newRulesToCopy === 1 ? 'alert' : 'alert' }}</strong>
+                                da <strong>{{ $this->otherHosts->firstWhere('id', $selectedSourceHostId)?->label }}</strong>.
+                                @if($totalSourceRules > $newRulesToCopy)
+                                    <span class="text-indigo-500 dark:text-indigo-400">
+                                        ({{ $totalSourceRules - $newRulesToCopy }} già {{ ($totalSourceRules - $newRulesToCopy) === 1 ? 'presente' : 'presenti' }}, {{ ($totalSourceRules - $newRulesToCopy) === 1 ? 'verrà saltato' : 'verranno saltati' }}.)
+                                    </span>
+                                @endif
+                            </p>
+                        @else
+                            <p class="text-gray-500 dark:text-gray-400">
+                                Tutti gli alert di
+                                <strong>{{ $this->otherHosts->firstWhere('id', $selectedSourceHostId)?->label }}</strong>
+                                sono già presenti su questo host.
+                            </p>
+                        @endif
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button wire:click="cancelCopy"
+                                class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            Annulla
+                        </button>
+                        @if($newRulesToCopy > 0)
+                            <button wire:click="executeCopy"
+                                    class="text-sm px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-colors">
+                                Copia
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    @endif
 
     @if($rules->isEmpty())
         <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 py-16 text-center">
