@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Host;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -14,6 +15,10 @@ class HostEdit extends Component
     public string $label       = '';
     public string $description = '';
     public string $ip          = '';
+
+    public bool    $confirmingRegenerate = false;
+    public ?string $regeneratedKey       = null;
+    public bool    $regenerated          = false;
 
     protected array $rules = [
         'label'       => ['required', 'string', 'max:100'],
@@ -39,6 +44,31 @@ class HostEdit extends Component
         ]);
 
         $this->redirectRoute('hosts.show', $this->host);
+    }
+
+    public function confirmRegenerate(): void
+    {
+        $this->confirmingRegenerate = true;
+    }
+
+    public function cancelRegenerate(): void
+    {
+        $this->confirmingRegenerate = false;
+    }
+
+    public function regenerateApiKey(): void
+    {
+        $plaintext = Str::random(48);
+        $prefix    = substr($plaintext, 0, 12);
+
+        $this->host->update([
+            'api_key'        => bcrypt($plaintext),
+            'api_key_prefix' => $prefix,
+        ]);
+
+        $this->confirmingRegenerate = false;
+        $this->regeneratedKey       = $plaintext;
+        $this->regenerated          = true;
     }
 
     public function render()
