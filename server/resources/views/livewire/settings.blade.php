@@ -162,4 +162,64 @@
         </div>
 
     </form>
+
+    {{-- Import / Export --}}
+    <div class="mt-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Import / Export</h2>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                Export all hosts, alert rules and settings to a JSON backup file. Import a previously exported file to restore or migrate configuration.
+                <span class="text-amber-500 dark:text-amber-400 font-medium">The export file contains API keys — keep it secure.</span>
+            </p>
+        </div>
+
+        {{-- Export --}}
+        <div class="flex items-center gap-4">
+            <button type="button"
+                    wire:click="export"
+                    wire:loading.attr="disabled"
+                    wire:target="export"
+                    class="text-sm font-medium px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40">
+                <span wire:loading.remove wire:target="export">Export configuration</span>
+                <span wire:loading wire:target="export">Exporting…</span>
+            </button>
+            <p class="text-xs text-gray-400 dark:text-gray-500">Downloads a <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1 rounded">argoos-config-*.json</code> file.</p>
+        </div>
+
+        {{-- Import --}}
+        <div class="space-y-3">
+            <div class="flex items-start gap-3">
+                <div class="flex-1">
+                    <input type="file"
+                           wire:model="importFile"
+                           accept=".json"
+                           class="block w-full text-sm text-gray-600 dark:text-gray-400
+                                  file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-gray-300 dark:file:border-gray-600
+                                  file:text-sm file:font-medium file:bg-white dark:file:bg-gray-800 file:text-gray-700 dark:file:text-gray-300
+                                  hover:file:bg-gray-50 dark:hover:file:bg-gray-700 file:transition-colors file:cursor-pointer">
+                    @error('importFile') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+                </div>
+                <button type="button"
+                        wire:click="import"
+                        wire:loading.attr="disabled"
+                        wire:target="import"
+                        @disabled(! $importFile)
+                        class="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap">
+                    <span wire:loading.remove wire:target="import">Import</span>
+                    <span wire:loading wire:target="import">Importing…</span>
+                </button>
+            </div>
+
+            @if($importError)
+                <p class="text-sm text-red-600 dark:text-red-400 font-medium">{{ $importError }}</p>
+            @endif
+
+            @if($importResult)
+                <div class="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300 space-y-0.5">
+                    <p class="font-semibold">Import complete.</p>
+                    <p>{{ $importResult['new_hosts'] }} new host(s) created, {{ $importResult['updated_hosts'] }} host(s) updated, {{ $importResult['rules'] }} alert rule(s) imported.</p>
+                </div>
+            @endif
+        </div>
+    </div>
 </div>

@@ -2,14 +2,20 @@
 
 namespace App\Livewire;
 
+use App\Models\AlertRule;
+use App\Models\Host;
 use App\Models\Setting;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 #[Title('Settings — Argoos')]
 class Settings extends Component
 {
+    use WithFileUploads;
+
     public string $alertEmail              = '';
     public string $telegramChatId          = '';
     public string $slackWebhookUrl         = '';
@@ -25,6 +31,10 @@ class Settings extends Component
     public string $telegramTestMessage = '';
     public string $slackTestStatus     = '';
     public string $slackTestMessage    = '';
+
+    public mixed  $importFile   = null;
+    public string $importError  = '';
+    public ?array $importResult = null;
 
     protected array $rules = [
         'alertEmail'                 => ['nullable', 'email', 'max:255'],
@@ -153,6 +163,126 @@ class Settings extends Component
             $this->slackTestStatus  = 'error';
             $this->slackTestMessage = $response->body() ?: 'Request failed.';
         }
+    }
+
+    public function export(): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $data = [
+            'version'     => 1,
+            'exported_at' => now()->toIso8601String(),
+            'settings'    => Setting::all()->pluck('value', 'key')->toArray(),
+            'hosts'       => Host::with('alertRules')->get()->map(fn (Host $h) => [
+                'label'          => $h->label,
+                'description'    => $h->description,
+                'ip'             => $h->ip,
+                'api_key'        => $h->api_key,
+                'api_key_prefix' => $h->api_key_prefix,
+                'alert_rules'    => $h->alertRules->map(fn (AlertRule $r) => [
+                    'metric'              => $r->metric,
+                    'operator'            => $r->operator,
+                    'threshold'           => $r->threshold,
+                    'excluded_partitions' => $r->excluded_partitions,
+                    'duration_minutes'    => $r->duration_minutes,
+                    'channel'             => $r->channel,
+                    'channel_target'      => $r->channel_target,
+                    'is_active'           => $r->is_active,
+                ])->values()->all(),
+            ])->values()->all(),
+        ];
+
+        $filename = 'argoos-config-' . now()->format('Ymd-His') . '.json';
+
+        return response()->streamDownload(
+            fn () => print json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+            $filename,
+            ['Content-Type' => 'application/json'],
+        );
+    }
+
+    public function import(): void
+    {
+        $this->importError  = '';
+        $this->importResult = null;
+
+        $this->validate(['importFile' => ['required', 'file', 'mimes:json,txt', 'max:2048']]);
+
+        $content = file_get_contents($this->importFile->getRealPath());
+        $data    = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE || ! isset($data['version']) || $data['version'] !== 1) {
+            $this->importError = 'Invalid file format or unsupported version.';
+            $this->importFile  = null;
+            return;
+        }
+
+        $newHosts      = 0;
+        $updatedHosts  = 0;
+        $importedRules = 0;
+
+        try {
+        DB::transaction(function () use ($data, &$newHosts, &$updatedHosts, &$importedRules): void {
+            foreach ($data['settings'] ?? [] as $key => $value) {
+                Setting::set($key, $value);
+            }
+
+            foreach ($data['hosts'] ?? [] as $hostData) {
+                $fields = [
+                    'description'    => $hostData['description'] ?? null,
+                    'ip'             => $hostData['ip'] ?? null,
+                    'api_key'        => $hostData['api_key'],
+                    'api_key_prefix' => $hostData['api_key_prefix'],
+                ];
+
+                $host = Host::where('label', $hostData['label'])->first();
+
+                if ($host) {
+                    $host->update($fields);
+                    $updatedHosts++;
+                } else {
+                    $host = Host::create(array_merge(['label' => $hostData['label']], $fields));
+                    $newHosts++;
+                }
+
+                foreach ($hostData['alert_rules'] ?? [] as $r) {
+                    $duplicate = $host->alertRules()
+                        ->where('metric', $r['metric'])
+                        ->where('operator', $r['operator'])
+                        ->where('threshold', $r['threshold'])
+                        ->where('duration_minutes', $r['duration_minutes'])
+                        ->where('channel', $r['channel'])
+                        ->where('channel_target', $r['channel_target'])
+                        ->exists();
+
+                    if (! $duplicate) {
+                        $host->alertRules()->create([
+                            'metric'              => $r['metric'],
+                            'operator'            => $r['operator'],
+                            'threshold'           => $r['threshold'],
+                            'excluded_partitions' => $r['excluded_partitions'] ?? null,
+                            'duration_minutes'    => $r['duration_minutes'],
+                            'channel'             => $r['channel'],
+                            'channel_target'      => $r['channel_target'],
+                            'is_active'           => $r['is_active'] ?? true,
+                        ]);
+                        $importedRules++;
+                    }
+                }
+            }
+        });
+        } catch (\Throwable $e) {
+            $this->importError = 'Import failed: ' . $e->getMessage();
+            $this->importFile  = null;
+            return;
+        }
+
+        $this->mount();
+
+        $this->importFile   = null;
+        $this->importResult = [
+            'new_hosts'     => $newHosts,
+            'updated_hosts' => $updatedHosts,
+            'rules'         => $importedRules,
+        ];
     }
 
     public function render()
