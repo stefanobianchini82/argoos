@@ -28,6 +28,10 @@
                class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 transition-colors">
                 Alerts
             </a>
+            <a href="{{ route('hosts.checks', $this->host) }}"
+               class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 transition-colors">
+                Checks
+            </a>
             <a href="/hosts/{{ $this->host->id }}/edit"
                class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 transition-colors">
                 Edit

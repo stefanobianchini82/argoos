@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\AlertRule;
 use App\Models\Host;
+use App\Models\HttpCheck;
 use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -171,7 +172,7 @@ class Settings extends Component
             'version'     => 1,
             'exported_at' => now()->toIso8601String(),
             'settings'    => Setting::all()->pluck('value', 'key')->toArray(),
-            'hosts'       => Host::with('alertRules')->get()->map(fn (Host $h) => [
+            'hosts'       => Host::with(['alertRules', 'httpChecks'])->get()->map(fn (Host $h) => [
                 'label'          => $h->label,
                 'description'    => $h->description,
                 'ip'             => $h->ip,
@@ -186,6 +187,17 @@ class Settings extends Component
                     'channel'             => $r->channel,
                     'channel_target'      => $r->channel_target,
                     'is_active'           => $r->is_active,
+                ])->values()->all(),
+                'http_checks'    => $h->httpChecks->map(fn (HttpCheck $c) => [
+                    'label'                => $c->label,
+                    'url'                  => $c->url,
+                    'method'               => $c->method,
+                    'timeout_seconds'      => $c->timeout_seconds,
+                    'expected_status_code' => $c->expected_status_code,
+                    'keyword_match'        => $c->keyword_match,
+                    'channel'              => $c->channel,
+                    'channel_target'       => $c->channel_target,
+                    'is_active'            => $c->is_active,
                 ])->values()->all(),
             ])->values()->all(),
         ];
@@ -215,12 +227,13 @@ class Settings extends Component
             return;
         }
 
-        $newHosts      = 0;
-        $updatedHosts  = 0;
-        $importedRules = 0;
+        $newHosts       = 0;
+        $updatedHosts   = 0;
+        $importedRules  = 0;
+        $importedChecks = 0;
 
         try {
-        DB::transaction(function () use ($data, &$newHosts, &$updatedHosts, &$importedRules): void {
+        DB::transaction(function () use ($data, &$newHosts, &$updatedHosts, &$importedRules, &$importedChecks): void {
             foreach ($data['settings'] ?? [] as $key => $value) {
                 Setting::set($key, $value);
             }
@@ -267,6 +280,29 @@ class Settings extends Component
                         $importedRules++;
                     }
                 }
+
+                foreach ($hostData['http_checks'] ?? [] as $c) {
+                    $duplicate = $host->httpChecks()
+                        ->where('url', $c['url'])
+                        ->where('method', $c['method'])
+                        ->where('expected_status_code', $c['expected_status_code'])
+                        ->exists();
+
+                    if (! $duplicate) {
+                        $host->httpChecks()->create([
+                            'label'                => $c['label'],
+                            'url'                  => $c['url'],
+                            'method'               => $c['method'],
+                            'timeout_seconds'      => $c['timeout_seconds'] ?? 10,
+                            'expected_status_code' => $c['expected_status_code'],
+                            'keyword_match'        => $c['keyword_match'] ?? null,
+                            'channel'              => $c['channel'],
+                            'channel_target'       => $c['channel_target'],
+                            'is_active'            => $c['is_active'] ?? true,
+                        ]);
+                        $importedChecks++;
+                    }
+                }
             }
         });
         } catch (\Throwable $e) {
@@ -282,6 +318,7 @@ class Settings extends Component
             'new_hosts'     => $newHosts,
             'updated_hosts' => $updatedHosts,
             'rules'         => $importedRules,
+            'checks'        => $importedChecks,
         ];
     }
 

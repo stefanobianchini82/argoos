@@ -50,6 +50,11 @@ class Host extends Model
         return $this->hasMany(AlertRule::class);
     }
 
+    public function httpChecks(): HasMany
+    {
+        return $this->hasMany(HttpCheck::class);
+    }
+
     public function isOnline(): bool
     {
         return $this->last_seen_at !== null
