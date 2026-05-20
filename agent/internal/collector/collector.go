@@ -2,6 +2,7 @@ package collector
 
 import (
 	"os"
+	"sort"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/cpu"
@@ -10,6 +11,7 @@ import (
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	psnet "github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 type DiskPartition struct {
@@ -17,6 +19,12 @@ type DiskPartition struct {
 	Total uint64 `json:"total"`
 	Used  uint64 `json:"used"`
 	Free  uint64 `json:"free"`
+}
+
+type ProcessMemory struct {
+	PID  int32  `json:"pid"`
+	Name string `json:"name"`
+	RSS  uint64 `json:"mem_rss"`
 }
 
 type Metric struct {
@@ -33,6 +41,7 @@ type Metric struct {
 	LoadAvg15      float64         `json:"load_avg_15"`
 	UptimeSeconds  uint64          `json:"uptime_seconds"`
 	DiskPartitions []DiskPartition `json:"disk_partitions"`
+	Processes      []ProcessMemory `json:"processes"`
 }
 
 // skipFSType lists pseudo/kernel-only filesystem types that carry no useful disk
@@ -139,7 +148,30 @@ func (c *Collector) Collect() (*Metric, error) {
 		}
 	}
 
+	m.Processes = collectTopProcesses(20)
+
 	return m, nil
+}
+
+func collectTopProcesses(limit int) []ProcessMemory {
+	procs, err := process.Processes()
+	if err != nil {
+		return nil
+	}
+	result := make([]ProcessMemory, 0, len(procs))
+	for _, p := range procs {
+		info, err := p.MemoryInfo()
+		if err != nil || info == nil {
+			continue
+		}
+		name, _ := p.Name()
+		result = append(result, ProcessMemory{PID: p.Pid, Name: name, RSS: info.RSS})
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].RSS > result[j].RSS })
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	return result
 }
 
 func (c *Collector) readDiskCounters() (read, write uint64) {

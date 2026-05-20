@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
+use App\Models\ProcessMemory;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,10 @@ class MetricController extends Controller
             'disk_partitions.*.total'   => ['required', 'integer', 'min:0'],
             'disk_partitions.*.used'    => ['required', 'integer', 'min:0'],
             'disk_partitions.*.free'    => ['required', 'integer', 'min:0'],
+            'processes'                 => ['sometimes', 'array'],
+            'processes.*.pid'           => ['required', 'integer', 'min:1'],
+            'processes.*.name'          => ['required', 'string', 'max:255'],
+            'processes.*.mem_rss'       => ['required', 'integer', 'min:0'],
         ]);
 
         /** @var Host $host */
@@ -70,6 +75,18 @@ class MetricController extends Controller
             ], $validated['disk_partitions']);
 
             DiskPartition::insert($partitions);
+
+            if (!empty($validated['processes'])) {
+                $processes = array_map(fn(array $p) => [
+                    'host_id'      => $host->id,
+                    'pid'          => $p['pid'],
+                    'name'         => $p['name'],
+                    'mem_rss'      => $p['mem_rss'],
+                    'collected_at' => $collectedAt,
+                ], $validated['processes']);
+
+                ProcessMemory::insert($processes);
+            }
         });
 
         return response()->json(['status' => 'created'], 201);

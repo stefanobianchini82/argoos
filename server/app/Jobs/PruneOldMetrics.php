@@ -20,7 +20,7 @@ class PruneOldMetrics implements ShouldQueue
         $nextMonth = now()->addMonth()->startOfMonth();
         $toDrop    = now()->subMonths(2)->startOfMonth();
 
-        foreach (['metrics', 'disk_partitions'] as $table) {
+        foreach (['metrics', 'disk_partitions', 'process_memory'] as $table) {
             $this->addNextMonthPartition($table, $nextMonth);
             $this->dropPartitionIfExists($table, $toDrop);
         }
