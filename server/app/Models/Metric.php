@@ -24,6 +24,7 @@ class Metric extends Model
         'load_avg_1',
         'load_avg_5',
         'load_avg_15',
+        'uptime_seconds',
     ];
 
     protected $casts = [
@@ -38,6 +39,7 @@ class Metric extends Model
         'load_avg_1'       => 'float',
         'load_avg_5'       => 'float',
         'load_avg_15'      => 'float',
+        'uptime_seconds'   => 'integer',
     ];
 
     public function host(): BelongsTo
