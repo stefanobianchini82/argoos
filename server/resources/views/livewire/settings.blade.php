@@ -217,7 +217,7 @@
             @if($importResult)
                 <div class="rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-4 py-3 text-sm text-green-700 dark:text-green-300 space-y-0.5">
                     <p class="font-semibold">Import complete.</p>
-                    <p>{{ $importResult['new_hosts'] }} new host(s) created, {{ $importResult['updated_hosts'] }} host(s) updated, {{ $importResult['rules'] }} alert rule(s) imported.</p>
+                    <p>{{ $importResult['new_hosts'] }} new host(s) created, {{ $importResult['updated_hosts'] }} host(s) updated, {{ $importResult['rules'] }} alert rule(s) imported, {{ $importResult['checks'] ?? 0 }} HTTP check(s) imported.</p>
                 </div>
             @endif
         </div>
