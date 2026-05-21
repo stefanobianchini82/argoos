@@ -118,15 +118,9 @@
                 </p>
             </div>
 
-            @php
-                $u = $latestMetric->uptime_seconds;
-                $uptimeStr = $u !== null
-                    ? sprintf('%dd %dh %dm', intdiv($u, 86400), intdiv($u % 86400, 3600), intdiv($u % 3600, 60))
-                    : '—';
-            @endphp
             <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">Uptime</p>
-                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $uptimeStr }}</p>
+                <p class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ $latestMetric->formatted_uptime ?? '—' }}</p>
             </div>
 
         </div>

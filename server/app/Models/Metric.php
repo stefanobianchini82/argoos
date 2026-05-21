@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -41,6 +42,20 @@ class Metric extends Model
         'load_avg_15'      => 'float',
         'uptime_seconds'   => 'integer',
     ];
+
+    protected function formattedUptime(): Attribute
+    {
+        return Attribute::get(function () {
+            if (! $this->uptime_seconds) {
+                return null;
+            }
+            $u = $this->uptime_seconds;
+            $d = intdiv($u, 86400);
+            $h = intdiv($u % 86400, 3600);
+            $m = intdiv($u % 3600, 60);
+            return ($d > 0 ? "{$d}d " : '') . "{$h}h {$m}m";
+        });
+    }
 
     public function host(): BelongsTo
     {
