@@ -6,6 +6,7 @@ import (
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
 	psnet "github.com/shirou/gopsutil/v3/net"
@@ -30,6 +31,7 @@ type Metric struct {
 	LoadAvg1       float64         `json:"load_avg_1"`
 	LoadAvg5       float64         `json:"load_avg_5"`
 	LoadAvg15      float64         `json:"load_avg_15"`
+	UptimeSeconds  uint64          `json:"uptime_seconds"`
 	DiskPartitions []DiskPartition `json:"disk_partitions"`
 }
 
@@ -107,6 +109,10 @@ func (c *Collector) Collect() (*Metric, error) {
 		m.LoadAvg1 = avg.Load1
 		m.LoadAvg5 = avg.Load5
 		m.LoadAvg15 = avg.Load15
+	}
+
+	if uptime, err := host.Uptime(); err == nil {
+		m.UptimeSeconds = uptime
 	}
 
 	parts, err := disk.Partitions(true) // all=true so overlay (Docker root) is included

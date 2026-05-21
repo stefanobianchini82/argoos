@@ -30,6 +30,7 @@ class MetricController extends Controller
             'load_avg_1'                => ['required', 'numeric', 'min:0'],
             'load_avg_5'                => ['required', 'numeric', 'min:0'],
             'load_avg_15'               => ['required', 'numeric', 'min:0'],
+            'uptime_seconds'            => ['nullable', 'integer', 'min:0'],
             'disk_partitions'           => ['required', 'array', 'min:1'],
             'disk_partitions.*.mount'   => ['required', 'string', 'max:255'],
             'disk_partitions.*.total'   => ['required', 'integer', 'min:0'],
@@ -56,6 +57,7 @@ class MetricController extends Controller
                 'load_avg_1'       => $validated['load_avg_1'],
                 'load_avg_5'       => $validated['load_avg_5'],
                 'load_avg_15'      => $validated['load_avg_15'],
+                'uptime_seconds'   => $validated['uptime_seconds'] ?? null,
             ]);
 
             $partitions = array_map(fn(array $p) => [

@@ -61,9 +61,16 @@
                                 </p>
                             </div>
                         </div>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                            Last seen {{ $host->last_seen_at?->diffForHumans() ?? 'never' }}
-                        </p>
+                        <div class="flex items-center justify-between mt-3">
+                            <p class="text-xs text-gray-400 dark:text-gray-500">
+                                Last seen {{ $host->last_seen_at?->diffForHumans() ?? 'never' }}
+                            </p>
+                            @if($host->latestMetric->formatted_uptime)
+                                <p class="text-xs text-gray-400 dark:text-gray-500">
+                                    up {{ $host->latestMetric->formatted_uptime }}
+                                </p>
+                            @endif
+                        </div>
                     @else
                         <p class="text-sm text-gray-400 dark:text-gray-500">No metrics received yet.</p>
                     @endif
