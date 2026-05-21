@@ -99,6 +99,26 @@
             </div>
 
             <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">Disk Usage</p>
+                @php
+                    $totalUsed = $latestPartitions->sum('used');
+                    $totalDisk = $latestPartitions->sum('total');
+                    $diskPct   = $totalDisk > 0 ? $totalUsed / $totalDisk * 100 : null;
+                @endphp
+                @if($diskPct !== null)
+                    <p class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                        {{ number_format($diskPct, 1) }}<span class="text-sm font-normal text-gray-400 dark:text-gray-500">%</span>
+                    </p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        {{ number_format($totalUsed / 1024 / 1024 / 1024, 1) }} /
+                        {{ number_format($totalDisk / 1024 / 1024 / 1024, 1) }} GB
+                    </p>
+                @else
+                    <p class="text-2xl font-semibold text-gray-400 dark:text-gray-500">—</p>
+                @endif
+            </div>
+
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-1">Disk I/O</p>
                 <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">
                     ↑ {{ number_format($latestMetric->disk_write_bytes / 1024, 0) }} <span class="font-normal text-gray-400 dark:text-gray-500">KB/s</span>

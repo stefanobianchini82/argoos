@@ -41,7 +41,7 @@
                     </div>
 
                     @if($host->latestMetric)
-                        <div class="grid grid-cols-3 gap-3">
+                        <div class="grid grid-cols-2 gap-3">
                             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
                                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">CPU</p>
                                 <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">
@@ -52,6 +52,16 @@
                                 <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">RAM</p>
                                 <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">
                                     {{ number_format($host->latestMetric->ram_used / $host->latestMetric->ram_total * 100, 1) }}%
+                                </p>
+                            </div>
+                            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mb-0.5">Disk</p>
+                                <p class="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                    @isset($diskUsagePct[$host->id])
+                                        {{ number_format($diskUsagePct[$host->id], 1) }}%
+                                    @else
+                                        —
+                                    @endisset
                                 </p>
                             </div>
                             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
