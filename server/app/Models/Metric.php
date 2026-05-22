@@ -43,6 +43,14 @@ class Metric extends Model
         'uptime_seconds'   => 'integer',
     ];
 
+    protected function ramPercentage(): Attribute
+    {
+        return Attribute::get(fn () => $this->ram_total > 0
+            ? round($this->ram_used / $this->ram_total * 100, 1)
+            : 0.0
+        );
+    }
+
     protected function formattedUptime(): Attribute
     {
         return Attribute::get(function () {
