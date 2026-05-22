@@ -7,6 +7,7 @@ use App\Models\Host;
 use App\Models\Metric;
 use App\Services\MetricAggregator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -58,7 +59,12 @@ class HostDetail extends Component
 
         $latestPartitions = new Collection();
         if ($latestMetric !== null) {
-            $maxAt = DiskPartition::where('host_id', $this->host->id)->max('collected_at');
+            $cutoff = now()->subMinutes(10);
+            $maxAt  = Cache::remember("disk_max_at.{$this->host->id}", 15, fn () =>
+                DiskPartition::where('host_id', $this->host->id)
+                    ->where('collected_at', '>=', $cutoff)
+                    ->max('collected_at')
+            );
             if ($maxAt !== null) {
                 $latestPartitions = DiskPartition::where('host_id', $this->host->id)
                     ->where('collected_at', $maxAt)
