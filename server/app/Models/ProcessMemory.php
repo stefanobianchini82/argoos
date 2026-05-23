@@ -16,6 +16,7 @@ class ProcessMemory extends Model
         'pid',
         'name',
         'mem_rss',
+        'cpu_percent',
         'collected_at',
     ];
 
@@ -23,6 +24,7 @@ class ProcessMemory extends Model
         'collected_at' => 'datetime',
         'pid'          => 'integer',
         'mem_rss'      => 'integer',
+        'cpu_percent'  => 'float',
     ];
 
     public function host(): BelongsTo

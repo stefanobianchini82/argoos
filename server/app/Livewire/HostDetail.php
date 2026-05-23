@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
+use App\Models\ProcessMemory;
 use App\Services\MetricAggregator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -18,6 +19,10 @@ class HostDetail extends Component
     public bool $confirmingDelete = false;
 
     public string $range = '1h';
+
+    public string $procSort = 'mem_rss';
+
+    public string $procDir = 'desc';
 
     private static array $validRanges = ['1h', '6h', '24h', '7d'];
 
@@ -36,10 +41,24 @@ class HostDetail extends Component
         DB::transaction(function () {
             Metric::where('host_id', $this->host->id)->delete();
             DiskPartition::where('host_id', $this->host->id)->delete();
+            ProcessMemory::where('host_id', $this->host->id)->delete();
             $this->host->delete();
         });
 
         $this->redirect('/');
+    }
+
+    public function sortProcesses(string $column): void
+    {
+        if (! in_array($column, ['mem_rss', 'cpu_percent'], true)) {
+            return;
+        }
+        if ($this->procSort === $column) {
+            $this->procDir = $this->procDir === 'desc' ? 'asc' : 'desc';
+        } else {
+            $this->procSort = $column;
+            $this->procDir  = 'desc';
+        }
     }
 
     public function setRange(string $range): void
@@ -73,14 +92,28 @@ class HostDetail extends Component
             }
         }
 
+        $latestProcesses = new Collection();
+        if ($latestMetric !== null) {
+            $maxProcAt = ProcessMemory::where('host_id', $this->host->id)->max('collected_at');
+            if ($maxProcAt !== null) {
+                $latestProcesses = ProcessMemory::where('host_id', $this->host->id)
+                    ->where('collected_at', $maxProcAt)
+                    ->orderBy($this->procSort, $this->procDir)
+                    ->get();
+            }
+        }
+
         $chartData = app(MetricAggregator::class)->getForRange($this->host, $this->range);
 
         return view('livewire.host-detail', [
             'latestMetric'     => $latestMetric,
             'latestPartitions' => $latestPartitions,
+            'latestProcesses'  => $latestProcesses,
             'chartData'        => $chartData,
             'range'            => $this->range,
             'validRanges'      => self::$validRanges,
+            'procSort'         => $this->procSort,
+            'procDir'          => $this->procDir,
         ])->layout('layouts.app', ['title' => $this->host->label . ' — Argoos']);
     }
 }

@@ -41,6 +41,7 @@ class MetricController extends Controller
             'processes.*.pid'           => ['required', 'integer', 'min:1'],
             'processes.*.name'          => ['required', 'string', 'max:255'],
             'processes.*.mem_rss'       => ['required', 'integer', 'min:0'],
+            'processes.*.cpu_percent'   => ['sometimes', 'numeric', 'min:0'],
         ]);
 
         /** @var Host $host */
@@ -82,6 +83,7 @@ class MetricController extends Controller
                     'pid'          => $p['pid'],
                     'name'         => $p['name'],
                     'mem_rss'      => $p['mem_rss'],
+                    'cpu_percent'  => $p['cpu_percent'] ?? 0.0,
                     'collected_at' => $collectedAt,
                 ], $validated['processes']);
 

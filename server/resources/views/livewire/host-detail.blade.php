@@ -252,6 +252,39 @@
                 </table>
             </div>
         @endif
+        {{-- Top Processes --}}
+        @if($latestProcesses->isNotEmpty())
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 mt-8">Top Processes</h2>
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                @php $sortIcon = fn(string $col) => $procSort === $col ? ($procDir === 'desc' ? ' ↓' : ' ↑') : ''; @endphp
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                            <th class="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">PID</th>
+                            <th class="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Name</th>
+                            <th wire:click="sortProcesses('mem_rss')"
+                                class="text-right text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3 cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300">
+                                RSS Memory{{ $sortIcon('mem_rss') }}
+                            </th>
+                            <th wire:click="sortProcesses('cpu_percent')"
+                                class="text-right text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3 cursor-pointer select-none hover:text-gray-600 dark:hover:text-gray-300">
+                                CPU %{{ $sortIcon('cpu_percent') }}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach($latestProcesses as $proc)
+                            <tr>
+                                <td class="px-4 py-2 font-mono text-xs text-gray-400 dark:text-gray-500">{{ $proc->pid }}</td>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $proc->name }}</td>
+                                <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ number_format($proc->mem_rss / 1024 / 1024, 1) }} MB</td>
+                                <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ number_format($proc->cpu_percent, 1) }}%</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     @else
         <div class="text-center py-16 text-gray-400 dark:text-gray-500">
             <p class="text-sm">No metrics received yet for this host.</p>

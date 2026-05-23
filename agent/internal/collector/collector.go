@@ -22,9 +22,10 @@ type DiskPartition struct {
 }
 
 type ProcessMemory struct {
-	PID  int32  `json:"pid"`
-	Name string `json:"name"`
-	RSS  uint64 `json:"mem_rss"`
+	PID        int32   `json:"pid"`
+	Name       string  `json:"name"`
+	RSS        uint64  `json:"mem_rss"`
+	CPUPercent float64 `json:"cpu_percent"`
 }
 
 type Metric struct {
@@ -63,10 +64,13 @@ type Collector struct {
 	prevNetRx     uint64
 	prevNetTx     uint64
 	primed        bool
+	// procCache retains *process.Process objects across cycles so CPUPercent(0)
+	// can compute a meaningful delta (first cycle always returns 0, like disk/net deltas).
+	procCache map[int32]*process.Process
 }
 
 func New() *Collector {
-	return &Collector{}
+	return &Collector{procCache: make(map[int32]*process.Process)}
 }
 
 // Prime reads I/O counters once to establish the baseline, so the first real
@@ -148,29 +152,56 @@ func (c *Collector) Collect() (*Metric, error) {
 		}
 	}
 
-	m.Processes = collectTopProcesses(20)
+	m.Processes = c.collectTopProcesses(20)
 
 	return m, nil
 }
 
-func collectTopProcesses(limit int) []ProcessMemory {
+func (c *Collector) collectTopProcesses(limit int) []ProcessMemory {
 	procs, err := process.Processes()
 	if err != nil {
 		return nil
 	}
-	result := make([]ProcessMemory, 0, len(procs))
+
+	type entry struct {
+		p    *process.Process
+		rss  uint64
+		name string
+	}
+	entries := make([]entry, 0, len(procs))
 	for _, p := range procs {
 		info, err := p.MemoryInfo()
 		if err != nil || info == nil {
 			continue
 		}
 		name, _ := p.Name()
-		result = append(result, ProcessMemory{PID: p.Pid, Name: name, RSS: info.RSS})
+		entries = append(entries, entry{p: p, rss: info.RSS, name: name})
 	}
-	sort.Slice(result, func(i, j int) bool { return result[i].RSS > result[j].RSS })
-	if len(result) > limit {
-		result = result[:limit]
+	sort.Slice(entries, func(i, j int) bool { return entries[i].rss > entries[j].rss })
+	if len(entries) > limit {
+		entries = entries[:limit]
 	}
+
+	// Reuse cached process objects so CPUPercent(0) computes a delta from the
+	// previous cycle rather than from process start (which would return 0).
+	newCache := make(map[int32]*process.Process, limit)
+	result := make([]ProcessMemory, 0, len(entries))
+	for _, e := range entries {
+		pid := e.p.Pid
+		cached, ok := c.procCache[pid]
+		if !ok {
+			cached = e.p
+		}
+		cpuPct, _ := cached.CPUPercent()
+		newCache[pid] = cached
+		result = append(result, ProcessMemory{
+			PID:        pid,
+			Name:       e.name,
+			RSS:        e.rss,
+			CPUPercent: cpuPct,
+		})
+	}
+	c.procCache = newCache
 	return result
 }
 
