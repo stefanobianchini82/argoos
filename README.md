@@ -1,5 +1,13 @@
 # Argoos
 
+[![Server CI](https://github.com/stefanobianchini82/argoos/actions/workflows/server.yml/badge.svg)](https://github.com/stefanobianchini82/argoos/actions/workflows/server.yml)
+[![Agent CI](https://github.com/stefanobianchini82/argoos/actions/workflows/agent.yml/badge.svg)](https://github.com/stefanobianchini82/argoos/actions/workflows/agent.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Go](https://img.shields.io/badge/Go-1.22-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![PHP](https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)](https://laravel.com/)
+[![Last Commit](https://img.shields.io/github/last-commit/stefanobianchini82/argoos)](https://github.com/stefanobianchini82/argoos/commits/master)
+
 Self-hosted infrastructure monitoring system. A lightweight Go agent collects system metrics from each server and ships them to a central Laravel dashboard with alerting, real-time graphs, and Telegram/Slack notifications.
 
 ---
