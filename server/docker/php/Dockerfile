@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     git
 
 RUN docker-php-ext-install pdo pdo_mysql zip pcntl
+RUN docker-php-ext-enable opcache
 
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && pecl install redis \
@@ -47,6 +48,7 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 
 COPY --from=node-build /app/public/build /var/www/html-assets/public/build
 
+COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/entrypoint.sh /usr/local/bin/argoos-entrypoint
 RUN chmod +x /usr/local/bin/argoos-entrypoint
 

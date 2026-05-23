@@ -27,6 +27,7 @@ class Settings extends Component
     public int    $hostOfflineRenotifyMinutes = 10;
 
     public bool   $saved = false;
+    public bool   $opcacheResetDone = false;
     public bool   $telegramBotConfigured = false;
     public string $telegramTestStatus  = '';
     public string $telegramTestMessage = '';
@@ -164,6 +165,14 @@ class Settings extends Component
             $this->slackTestStatus  = 'error';
             $this->slackTestMessage = $response->body() ?: 'Request failed.';
         }
+    }
+
+    public function resetOpcache(): void
+    {
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+        $this->opcacheResetDone = true;
     }
 
     public function export(): \Symfony\Component\HttpFoundation\StreamedResponse

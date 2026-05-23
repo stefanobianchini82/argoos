@@ -163,6 +163,27 @@
 
     </form>
 
+    {{-- OPCache --}}
+    <div class="mt-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">OPCache</h2>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Flush the PHP bytecode cache. Use after deploying code changes.</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <button type="button"
+                    wire:click="resetOpcache"
+                    wire:loading.attr="disabled"
+                    wire:target="resetOpcache"
+                    class="text-sm font-medium px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40">
+                <span wire:loading.remove wire:target="resetOpcache">Reset OPCache</span>
+                <span wire:loading wire:target="resetOpcache">Resetting…</span>
+            </button>
+            @if($opcacheResetDone)
+                <span class="text-sm text-green-600 dark:text-green-400 font-medium">OPCache flushed.</span>
+            @endif
+        </div>
+    </div>
+
     {{-- Import / Export --}}
     <div class="mt-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-5">
         <div>
