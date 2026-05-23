@@ -108,26 +108,7 @@ This pulls and starts six services: `nginx` (port 8080), `app` (PHP-FPM), `mysql
 docker compose exec app php artisan migrate
 ```
 
-### 5. Register the first host
-
-```bash
-docker compose exec app php artisan tinker
-```
-
-```php
-$key = bin2hex(random_bytes(32));
-
-App\Models\Host::create([
-    'label'          => 'my-server',
-    'ip'             => '192.168.1.10',
-    'api_key'        => password_hash($key, PASSWORD_BCRYPT),
-    'api_key_prefix' => substr($key, 0, 12),
-]);
-
-echo $key; // save this
-```
-
-### 6. Open the dashboard
+### 5. Open the dashboard
 
 ```
 http://<server-ip>:8080
@@ -135,7 +116,11 @@ http://<server-ip>:8080
 
 Credentials: `DASHBOARD_USER` / `DASHBOARD_PASSWORD` from `.env` (default user: `admin`).
 
-To start receiving metrics, deploy the agent on each host you want to monitor — see [Monitoring Additional Hosts](#monitoring-additional-hosts) below.
+### 6. Register the first host
+
+Navigate to **Hosts → Add Host** in the dashboard. Fill in the label and IP address — the dashboard generates an API key for you and displays it once. Copy it immediately: you will need it to configure the agent.
+
+To start receiving metrics, deploy the agent on each host you want to monitor — see [Monitoring Hosts](#monitoring-hosts) below.
 
 ---
 
@@ -152,7 +137,7 @@ docker run -d --restart unless-stopped \
   ghcr.io/stefanobianchini82/argoos-agent:latest
 ```
 
-Repeat steps 5–6 of the Quick Start (via tinker) to generate a separate API key for each host.
+Each host needs its own API key. Register additional hosts from the dashboard (**Hosts → Add Host**): the UI generates and displays the key on creation.
 
 ### Agent configuration
 
