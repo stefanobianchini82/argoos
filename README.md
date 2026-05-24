@@ -43,6 +43,19 @@ Argoos is made of two independent components:
 
 ---
 
+## Screenshots
+
+### Dashboard
+![Dashboard overview](docs/screenshots/dashboard.jpg)
+
+### Host Detail
+![Host detail with metrics and charts](docs/screenshots/host-details.jpg)
+
+### Settings
+![Settings page](docs/screenshots/settings.jpg)
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
