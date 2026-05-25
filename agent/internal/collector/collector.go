@@ -49,7 +49,7 @@ type Metric struct {
 // usage data. overlay is intentionally absent so the Docker container root is included.
 var skipFSType = map[string]bool{
 	"autofs": true, "bdev": true, "binfmt_misc": true, "bpf": true,
-	"cgroup": true, "cgroup2": true, "cpuset": true, "debugfs": true,
+	"cgroup": true, "cgroup2": true, "configfs": true, "cpuset": true, "debugfs": true,
 	"devpts": true, "devtmpfs": true, "efivarfs": true, "fusectl": true,
 	"fuse.gvfsd-fuse": true, "hugetlbfs": true, "mqueue": true,
 	"nfsd": true, "nsfs": true, "proc": true, "pstore": true,
