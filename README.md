@@ -142,7 +142,7 @@ To start receiving metrics, deploy the agent on each host you want to monitor â€
 To monitor servers, run the agent directly on each one. No server-side components needed.
 
 ```bash
-docker run -d --restart unless-stopped \
+docker run -d --restart unless-stopped --pid=host \
   -e SERVER_URL=http://<server-ip>:8080/api/v1/metrics \
   -e API_KEY=<key-generated-for-this-host> \
   -e HOST_LABEL=web-server-1 \

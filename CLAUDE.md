@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Server** (`/server`): Laravel 13 application that receives metrics from agents, stores them in MySQL, processes them asynchronously via Redis/Horizon, and provides a Livewire-based dashboard with alerting system.
 - **Agent** (`/agent`): Minimal Go 1.22 binary that collects system metrics (CPU, RAM, disk, network) via `gopsutil` and sends them to the server every N seconds.
 
-**Architecture**: Agents POST metrics to `/api/v1/metrics` (authenticated via `X-API-Key` header). The server validates, queues, and persists metrics asynchronously. Scheduled jobs run every minute to check alert rules and detect offline hosts. The dashboard (Phase 2+) displays real-time and historical metrics with Chart.js graphs.
+**Architecture**: Agents POST metrics to `/api/v1/metrics` (authenticated via `X-API-Key` header). The server validates, queues, and persists metrics asynchronously. Scheduled jobs run every minute to check alert rules and detect offline hosts. The dashboard displays real-time and historical metrics with Chart.js graphs.
 
 **Key Design Principles**:
 - Agent is stateless, no persistent storage — fire and forget
@@ -482,16 +482,20 @@ SERVER_URL=http://host.docker.internal:8000/api/v1/metrics \
 - **Agent**: Stateless, minimal (~8 MB image, ~5 MB RAM). Cross-compile trivially: `GOOS=linux GOARCH=arm64 go build` (Raspberry Pi, ARM servers).
 - **Server**: Scales with agent count. Partitioning keeps queries fast. Redis queues offload sync writes.
 - **Database**: MySQL 8 with RANGE partitioning, indexed prefix lookup. 50 hosts × 2880 metrics/day (30-sec interval) × 30 days = ~4.3M rows (easily manageable).
-- **Caching**: Redis for queue + cache. Metric aggregations cached by time range (Phase 3).
+- **Caching**: Redis for queue + cache. Metric aggregations cached by time range.
+- **Retention**: Scheduled job drops expired MySQL partitions automatically (no manual cleanup needed).
 
 ---
 
 ## Roadmap (Phases)
 
 - **Phase 1** (✓ Done): API, metrics ingestion, auth, Horizon
-- **Phase 2** (In Progress): Livewire dashboard, host CRUD, real-time metric display
-- **Phase 3** (Pending): Historical charts (Chart.js), time range picker, aggregation + Redis caching
-- **Phase 4** (Pending): Alert rules UI, evaluator, Telegram/Slack/email notifications
-- **Phase 5** (Pending): Full Docker Compose, agent image on GHCR, API docs
-- **Phase 6** (Pending): Multi-disk views, top processes, HTTP uptime checks
+- **Phase 2** (✓ Done): Livewire dashboard, host CRUD, real-time metric display
+- **Phase 3** (✓ Done): Historical charts (Chart.js), time range picker, aggregation + Redis caching
+- **Phase 4** (✓ Done): Alert rules UI, evaluator, Telegram/Slack/email notifications
+- **Phase 6** (✓ Done): Multi-disk views, top processes, HTTP uptime checks
+
+**Ideas for future development**:
+- Anomaly detection: automatic baseline + spike alerts without manual thresholds
+- Scheduled reports: weekly PDF/email report per host
 
