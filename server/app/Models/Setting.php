@@ -12,14 +12,16 @@ class Setting extends Model
 
     protected $fillable = ['key', 'value'];
 
-    public const ALERT_EMAIL                  = 'alert_email';
-    public const TELEGRAM_CHAT_ID             = 'telegram_chat_id';
-    public const SLACK_WEBHOOK_URL             = 'slack_webhook_url';
-    public const HOST_OFFLINE_EMAIL_ENABLED    = 'host_offline.email_enabled';
-    public const HOST_OFFLINE_TELEGRAM_ENABLED = 'host_offline.telegram_enabled';
-    public const HOST_OFFLINE_SLACK_ENABLED    = 'host_offline.slack_enabled';
-    public const HOST_OFFLINE_OFFLINE_MINUTES  = 'host_offline.offline_minutes';
-    public const HOST_OFFLINE_RENOTIFY_MINUTES = 'host_offline.renotify_minutes';
+    public const ALERT_EMAIL                    = 'alert_email';
+    public const TELEGRAM_CHAT_ID               = 'telegram_chat_id';
+    public const SLACK_WEBHOOK_URL               = 'slack_webhook_url';
+    public const WEBHOOK_URL                     = 'webhook_url';
+    public const HOST_OFFLINE_EMAIL_ENABLED      = 'host_offline.email_enabled';
+    public const HOST_OFFLINE_TELEGRAM_ENABLED   = 'host_offline.telegram_enabled';
+    public const HOST_OFFLINE_SLACK_ENABLED      = 'host_offline.slack_enabled';
+    public const HOST_OFFLINE_WEBHOOK_ENABLED    = 'host_offline.webhook_enabled';
+    public const HOST_OFFLINE_OFFLINE_MINUTES    = 'host_offline.offline_minutes';
+    public const HOST_OFFLINE_RENOTIFY_MINUTES   = 'host_offline.renotify_minutes';
 
     public static function get(string $key, mixed $default = null): mixed
     {

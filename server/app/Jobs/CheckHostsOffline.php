@@ -18,16 +18,19 @@ class CheckHostsOffline implements ShouldQueue
         $emailEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
         $telegramEnabled = filter_var(Setting::get(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
         $slackEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_SLACK_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
+        $webhookEnabled  = filter_var(Setting::get(Setting::HOST_OFFLINE_WEBHOOK_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
 
         $alertEmail      = Setting::get(Setting::ALERT_EMAIL);
         $telegramChatId  = Setting::get(Setting::TELEGRAM_CHAT_ID);
         $slackWebhookUrl = Setting::get(Setting::SLACK_WEBHOOK_URL);
+        $webhookUrl      = Setting::get(Setting::WEBHOOK_URL);
 
         $hasEmail    = $emailEnabled && filled($alertEmail);
         $hasTelegram = $telegramEnabled && filled($telegramChatId);
         $hasSlack    = $slackEnabled && filled($slackWebhookUrl);
+        $hasWebhook  = $webhookEnabled && filled($webhookUrl);
 
-        if (! $hasEmail && ! $hasTelegram && ! $hasSlack) {
+        if (! $hasEmail && ! $hasTelegram && ! $hasSlack && ! $hasWebhook) {
             return;
         }
 
@@ -41,7 +44,7 @@ class CheckHostsOffline implements ShouldQueue
                 $q->whereNull('last_offline_notified_at')
                   ->orWhere('last_offline_notified_at', '<', now()->subMinutes($renotifyMinutes));
             })
-            ->each(function (Host $host) use ($alertEmail, $telegramChatId, $slackWebhookUrl, $hasEmail, $hasTelegram, $hasSlack) {
+            ->each(function (Host $host) use ($alertEmail, $telegramChatId, $slackWebhookUrl, $webhookUrl, $hasEmail, $hasTelegram, $hasSlack, $hasWebhook) {
                 $host->update(['last_offline_notified_at' => now()]);
 
                 $notifiable = new AnonymousNotifiable;
@@ -58,7 +61,11 @@ class CheckHostsOffline implements ShouldQueue
                     $notifiable = $notifiable->route('slack', $slackWebhookUrl);
                 }
 
-                $notifiable->notify(new HostOffline($host, $hasEmail, $hasTelegram, $hasSlack));
+                if ($hasWebhook) {
+                    $notifiable = $notifiable->route('webhook', $webhookUrl);
+                }
+
+                $notifiable->notify(new HostOffline($host, $hasEmail, $hasTelegram, $hasSlack, $hasWebhook));
             });
     }
 }

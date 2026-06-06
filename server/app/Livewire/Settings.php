@@ -20,9 +20,11 @@ class Settings extends Component
     public string $alertEmail              = '';
     public string $telegramChatId          = '';
     public string $slackWebhookUrl         = '';
+    public string $webhookUrl              = '';
     public bool   $hostOfflineEmailEnabled    = true;
     public bool   $hostOfflineTelegramEnabled = false;
     public bool   $hostOfflineSlackEnabled    = false;
+    public bool   $hostOfflineWebhookEnabled  = false;
     public int    $hostOfflineOfflineMinutes  = 3;
     public int    $hostOfflineRenotifyMinutes = 10;
 
@@ -33,20 +35,24 @@ class Settings extends Component
     public string $telegramTestMessage = '';
     public string $slackTestStatus     = '';
     public string $slackTestMessage    = '';
+    public string $webhookTestStatus   = '';
+    public string $webhookTestMessage  = '';
 
     public mixed  $importFile   = null;
     public string $importError  = '';
     public ?array $importResult = null;
 
     protected array $rules = [
-        'alertEmail'                 => ['nullable', 'email', 'max:255'],
-        'telegramChatId'             => ['nullable', 'string', 'max:100'],
-        'slackWebhookUrl'            => ['nullable', 'url', 'max:500'],
-        'hostOfflineEmailEnabled'    => ['boolean'],
-        'hostOfflineTelegramEnabled' => ['boolean'],
-        'hostOfflineSlackEnabled'    => ['boolean'],
-        'hostOfflineOfflineMinutes'  => ['required', 'integer', 'min:1', 'max:1440'],
-        'hostOfflineRenotifyMinutes' => ['required', 'integer', 'min:1', 'max:1440'],
+        'alertEmail'                  => ['nullable', 'email', 'max:255'],
+        'telegramChatId'              => ['nullable', 'string', 'max:100'],
+        'slackWebhookUrl'             => ['nullable', 'url', 'max:500'],
+        'webhookUrl'                  => ['nullable', 'url', 'max:500'],
+        'hostOfflineEmailEnabled'     => ['boolean'],
+        'hostOfflineTelegramEnabled'  => ['boolean'],
+        'hostOfflineSlackEnabled'     => ['boolean'],
+        'hostOfflineWebhookEnabled'   => ['boolean'],
+        'hostOfflineOfflineMinutes'   => ['required', 'integer', 'min:1', 'max:1440'],
+        'hostOfflineRenotifyMinutes'  => ['required', 'integer', 'min:1', 'max:1440'],
     ];
 
     protected array $messages = [
@@ -58,6 +64,7 @@ class Settings extends Component
         $this->alertEmail              = (string) Setting::get(Setting::ALERT_EMAIL, '');
         $this->telegramChatId          = (string) Setting::get(Setting::TELEGRAM_CHAT_ID, '');
         $this->slackWebhookUrl         = (string) Setting::get(Setting::SLACK_WEBHOOK_URL, '');
+        $this->webhookUrl              = (string) Setting::get(Setting::WEBHOOK_URL, '');
         $this->hostOfflineEmailEnabled    = filter_var(
             Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true),
             FILTER_VALIDATE_BOOLEAN
@@ -70,6 +77,10 @@ class Settings extends Component
             Setting::get(Setting::HOST_OFFLINE_SLACK_ENABLED, false),
             FILTER_VALIDATE_BOOLEAN
         );
+        $this->hostOfflineWebhookEnabled = filter_var(
+            Setting::get(Setting::HOST_OFFLINE_WEBHOOK_ENABLED, false),
+            FILTER_VALIDATE_BOOLEAN
+        );
         $this->hostOfflineOfflineMinutes  = max(1, (int) Setting::get(Setting::HOST_OFFLINE_OFFLINE_MINUTES, 3));
         $this->hostOfflineRenotifyMinutes = max(1, (int) Setting::get(Setting::HOST_OFFLINE_RENOTIFY_MINUTES, 10));
 
@@ -80,14 +91,16 @@ class Settings extends Component
     {
         $this->validate();
 
-        Setting::set(Setting::ALERT_EMAIL,                   $this->alertEmail);
-        Setting::set(Setting::TELEGRAM_CHAT_ID,              $this->telegramChatId);
-        Setting::set(Setting::SLACK_WEBHOOK_URL,             $this->slackWebhookUrl);
-        Setting::set(Setting::HOST_OFFLINE_EMAIL_ENABLED,    $this->hostOfflineEmailEnabled ? '1' : '0');
-        Setting::set(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, $this->hostOfflineTelegramEnabled ? '1' : '0');
-        Setting::set(Setting::HOST_OFFLINE_SLACK_ENABLED,    $this->hostOfflineSlackEnabled ? '1' : '0');
-        Setting::set(Setting::HOST_OFFLINE_OFFLINE_MINUTES,  (string) $this->hostOfflineOfflineMinutes);
-        Setting::set(Setting::HOST_OFFLINE_RENOTIFY_MINUTES, (string) $this->hostOfflineRenotifyMinutes);
+        Setting::set(Setting::ALERT_EMAIL,                    $this->alertEmail);
+        Setting::set(Setting::TELEGRAM_CHAT_ID,               $this->telegramChatId);
+        Setting::set(Setting::SLACK_WEBHOOK_URL,              $this->slackWebhookUrl);
+        Setting::set(Setting::WEBHOOK_URL,                    $this->webhookUrl);
+        Setting::set(Setting::HOST_OFFLINE_EMAIL_ENABLED,     $this->hostOfflineEmailEnabled ? '1' : '0');
+        Setting::set(Setting::HOST_OFFLINE_TELEGRAM_ENABLED,  $this->hostOfflineTelegramEnabled ? '1' : '0');
+        Setting::set(Setting::HOST_OFFLINE_SLACK_ENABLED,     $this->hostOfflineSlackEnabled ? '1' : '0');
+        Setting::set(Setting::HOST_OFFLINE_WEBHOOK_ENABLED,   $this->hostOfflineWebhookEnabled ? '1' : '0');
+        Setting::set(Setting::HOST_OFFLINE_OFFLINE_MINUTES,   (string) $this->hostOfflineOfflineMinutes);
+        Setting::set(Setting::HOST_OFFLINE_RENOTIFY_MINUTES,  (string) $this->hostOfflineRenotifyMinutes);
 
         $this->saved = true;
     }
@@ -102,6 +115,13 @@ class Settings extends Component
         $this->saved = false;
         $this->slackTestStatus  = '';
         $this->slackTestMessage = '';
+    }
+
+    public function updatedWebhookUrl(): void
+    {
+        $this->saved = false;
+        $this->webhookTestStatus  = '';
+        $this->webhookTestMessage = '';
     }
 
     public function updatedTelegramChatId(): void
@@ -164,6 +184,32 @@ class Settings extends Component
         } else {
             $this->slackTestStatus  = 'error';
             $this->slackTestMessage = $response->body() ?: 'Request failed.';
+        }
+    }
+
+    public function testWebhookNotification(): void
+    {
+        $this->webhookTestStatus  = '';
+        $this->webhookTestMessage = '';
+
+        if (empty($this->webhookUrl)) {
+            $this->webhookTestStatus  = 'error';
+            $this->webhookTestMessage = 'Enter a Webhook URL first.';
+            return;
+        }
+
+        $response = Http::post($this->webhookUrl, [
+            'event'     => 'test',
+            'message'   => 'Argoos webhook notifications are working correctly.',
+            'timestamp' => now()->toIso8601String(),
+        ]);
+
+        if ($response->successful()) {
+            $this->webhookTestStatus  = 'success';
+            $this->webhookTestMessage = 'Test payload delivered!';
+        } else {
+            $this->webhookTestStatus  = 'error';
+            $this->webhookTestMessage = $response->body() ?: 'Request failed.';
         }
     }
 

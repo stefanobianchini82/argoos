@@ -6,7 +6,6 @@ use App\Models\HttpCheck;
 use App\Models\HttpCheckEvent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 class HttpCheckRecovered extends Notification
 {
@@ -65,8 +64,16 @@ class HttpCheckRecovered extends Notification
         ];
     }
 
-    public function toWebhook(object $notifiable): void
+    public function toWebhook(object $notifiable): array
     {
-        Log::warning('HttpCheckRecovered: Webhook channel is not yet implemented.', ['check_id' => $this->check->id]);
+        return [
+            'event'        => 'http_check_recovered',
+            'host'         => $this->check->host->label,
+            'check'        => $this->check->label,
+            'url'          => $this->check->url,
+            'down_since'   => $this->event->triggered_at->toIso8601String(),
+            'recovered_at' => $this->event->resolved_at?->toIso8601String() ?? now()->toIso8601String(),
+            'response_ms'  => $this->event->response_ms,
+        ];
     }
 }

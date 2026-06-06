@@ -6,7 +6,6 @@ use App\Models\HttpCheck;
 use App\Models\HttpCheckEvent;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 class HttpCheckDown extends Notification
 {
@@ -60,9 +59,16 @@ class HttpCheckDown extends Notification
         ];
     }
 
-    public function toWebhook(object $notifiable): void
+    public function toWebhook(object $notifiable): array
     {
-        Log::warning('HttpCheckDown: Webhook channel is not yet implemented.', ['check_id' => $this->check->id]);
+        return [
+            'event'     => 'http_check_down',
+            'host'      => $this->check->host->label,
+            'check'     => $this->check->label,
+            'url'       => $this->check->url,
+            'reason'    => $this->reasonText($this->event->context ?? []),
+            'timestamp' => $this->event->triggered_at->toIso8601String(),
+        ];
     }
 
     private function reasonText(array $context): string

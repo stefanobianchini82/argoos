@@ -140,6 +140,22 @@ class AlertEvaluator
                 return;
             }
             $notifiable = $notifiable->route('telegram', $rule->channel_target);
+        } elseif ($rule->channel === 'slack') {
+            if (blank($rule->channel_target)) {
+                Log::warning('AlertEvaluator: no channel_target (webhook URL) configured for slack rule.', [
+                    'rule_id' => $rule->id,
+                ]);
+                return;
+            }
+            $notifiable = $notifiable->route('slack', $rule->channel_target);
+        } elseif ($rule->channel === 'webhook') {
+            if (blank($rule->channel_target)) {
+                Log::warning('AlertEvaluator: no channel_target (webhook URL) configured for webhook rule.', [
+                    'rule_id' => $rule->id,
+                ]);
+                return;
+            }
+            $notifiable = $notifiable->route('webhook', $rule->channel_target);
         } else {
             $alertEmail = \App\Models\Setting::get(\App\Models\Setting::ALERT_EMAIL);
             if (blank($alertEmail)) {

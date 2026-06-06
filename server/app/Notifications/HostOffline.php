@@ -5,7 +5,6 @@ namespace App\Notifications;
 use App\Models\Host;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
 
 class HostOffline extends Notification
 {
@@ -14,6 +13,7 @@ class HostOffline extends Notification
         private readonly bool $emailEnabled    = true,
         private readonly bool $telegramEnabled = false,
         private readonly bool $slackEnabled    = false,
+        private readonly bool $webhookEnabled  = false,
     ) {}
 
     public function via(object $notifiable): array
@@ -30,6 +30,10 @@ class HostOffline extends Notification
 
         if ($this->slackEnabled) {
             $channels[] = 'slack';
+        }
+
+        if ($this->webhookEnabled) {
+            $channels[] = 'webhook';
         }
 
         return $channels;
@@ -58,11 +62,15 @@ class HostOffline extends Notification
             . "Last seen: {$lastSeen}";
     }
 
-    public function toWebhook(object $notifiable): void
+    public function toWebhook(object $notifiable): array
     {
-        Log::warning('HostOffline: Webhook channel is not yet implemented.', [
-            'host' => $this->host->label,
-        ]);
+        return [
+            'event'     => 'host_offline',
+            'host'      => $this->host->label,
+            'ip'        => $this->host->ip,
+            'last_seen' => $this->host->last_seen_at?->toIso8601String(),
+            'timestamp' => now()->toIso8601String(),
+        ];
     }
 
     public function toSlack(object $notifiable): array

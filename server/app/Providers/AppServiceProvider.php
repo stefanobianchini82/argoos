@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Channels\SlackChannel;
 use App\Channels\TelegramChannel;
+use App\Channels\WebhookChannel;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\ChannelManager;
@@ -27,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->resolving(ChannelManager::class, function (ChannelManager $manager) {
             $manager->extend('telegram', fn () => new TelegramChannel());
             $manager->extend('slack', fn () => new SlackChannel());
+            $manager->extend('webhook', fn () => new WebhookChannel());
         });
 
         RateLimiter::for('agents', function (Request $request) {

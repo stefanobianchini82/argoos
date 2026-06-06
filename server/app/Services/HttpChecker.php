@@ -98,6 +98,7 @@ class HttpChecker
         $notifiable = match ($check->channel) {
             'telegram' => $notifiable->route('telegram', $check->channel_target),
             'slack'    => $notifiable->route('slack', $check->channel_target),
+            'webhook'  => $notifiable->route('webhook', $check->channel_target),
             default    => $notifiable->route('mail', $check->channel_target),
         };
 

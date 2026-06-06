@@ -79,6 +79,32 @@
                 @endif
                 @error('slackWebhookUrl') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
             </div>
+
+            <div>
+                <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Webhook URL</label>
+                <div class="flex gap-2">
+                    <input type="url"
+                           wire:model="webhookUrl"
+                           placeholder="https://your-server.example.com/webhook"
+                           class="flex-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button type="button"
+                            wire:click="testWebhookNotification"
+                            wire:loading.attr="disabled"
+                            wire:target="testWebhookNotification"
+                            @disabled(empty($webhookUrl))
+                            class="text-sm font-medium px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        <span wire:loading.remove wire:target="testWebhookNotification">Test</span>
+                        <span wire:loading wire:target="testWebhookNotification">…</span>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">URL that receives a POST JSON payload for host-offline notifications. Leave blank to disable webhook alerts.</p>
+                @if($webhookTestStatus === 'success')
+                    <p class="text-xs text-green-600 dark:text-green-400 mt-1">{{ $webhookTestMessage }}</p>
+                @elseif($webhookTestStatus === 'error')
+                    <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $webhookTestMessage }}</p>
+                @endif
+                @error('webhookUrl') <p class="text-xs text-red-500 dark:text-red-400 mt-1">{{ $message }}</p> @enderror
+            </div>
         </div>
 
         <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
@@ -142,6 +168,18 @@
                         wire:click="$toggle('hostOfflineSlackEnabled')"
                         class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors {{ $hostOfflineSlackEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600' }}">
                     <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform {{ $hostOfflineSlackEnabled ? 'translate-x-4' : 'translate-x-1' }}"></span>
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm text-gray-700 dark:text-gray-300">Webhook</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">Send a webhook POST when a host goes offline</p>
+                </div>
+                <button type="button"
+                        wire:click="$toggle('hostOfflineWebhookEnabled')"
+                        class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors {{ $hostOfflineWebhookEnabled ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-600' }}">
+                    <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform {{ $hostOfflineWebhookEnabled ? 'translate-x-4' : 'translate-x-1' }}"></span>
                 </button>
             </div>
         </div>
