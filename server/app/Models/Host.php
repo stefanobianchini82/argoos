@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\AlertRule;
+use Spatie\Tags\HasTags;
 
 class Host extends Model
 {
-    use HasFactory;
+    use HasFactory, HasTags;
     protected $fillable = [
         'label',
         'description',

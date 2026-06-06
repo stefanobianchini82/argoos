@@ -3,17 +3,34 @@
 namespace App\Livewire;
 
 use App\Models\Host;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Title('Dashboard')]
 class DashboardOverview extends Component
 {
+    public string $filterTag = '';
+
+    #[Computed]
+    public function availableTags(): Collection
+    {
+        $names = Cache::remember('dashboard.available_tags_v1', 60, fn () =>
+            \Spatie\Tags\Tag::orderBy('name')->pluck('name')->toArray()
+        );
+
+        return collect($names);
+    }
+
     public function render()
     {
-        $hosts   = Host::with('latestMetric')->orderBy('label')->get();
+        $hosts = Host::with(['latestMetric', 'tags'])
+            ->when($this->filterTag !== '', fn ($q) => $q->withAnyTags([$this->filterTag]))
+            ->orderBy('label')
+            ->get();
         $hostIds = $hosts->pluck('id')->all();
 
         $diskUsagePct = [];
