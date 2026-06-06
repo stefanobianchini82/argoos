@@ -11,7 +11,8 @@
         "laravel/horizon": "^5.46",
         "laravel/tinker": "^3.0",
         "livewire/livewire": "^4.3",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "spatie/laravel-tags": "*"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

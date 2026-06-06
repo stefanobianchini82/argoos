@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Host;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -15,6 +16,7 @@ class HostEdit extends Component
     public string $label       = '';
     public string $description = '';
     public string $ip          = '';
+    public string $tags        = '';
 
     public bool    $confirmingRegenerate = false;
     public ?string $regeneratedKey       = null;
@@ -24,6 +26,7 @@ class HostEdit extends Component
         'label'       => ['required', 'string', 'max:100'],
         'description' => ['nullable', 'string', 'max:5000'],
         'ip'          => ['nullable', 'string', 'max:45'],
+        'tags'        => ['nullable', 'string', 'max:500'],
     ];
 
     public function mount(): void
@@ -31,6 +34,7 @@ class HostEdit extends Component
         $this->label       = $this->host->label;
         $this->description = $this->host->description ?? '';
         $this->ip          = $this->host->ip ?? '';
+        $this->tags        = $this->host->tags->pluck('name')->implode(', ');
     }
 
     public function save(): void
@@ -42,6 +46,16 @@ class HostEdit extends Component
             'description' => trim($this->description) ?: null,
             'ip'          => trim($this->ip) ?: null,
         ]);
+
+        $this->host->syncTags(
+            collect(explode(',', $this->tags))
+                ->map(fn ($t) => trim($t))
+                ->filter()
+                ->values()
+                ->all()
+        );
+
+        Cache::forget('dashboard.available_tags');
 
         $this->redirectRoute('hosts.show', $this->host);
     }

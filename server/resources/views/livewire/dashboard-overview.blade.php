@@ -1,5 +1,5 @@
 <div wire:poll.30s>
-    <div class="mb-6 flex items-center justify-between">
+    <div class="mb-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
             <h1 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Hosts</h1>
             <span class="text-sm text-gray-400 dark:text-gray-500">{{ $hosts->count() }} host{{ $hosts->count() !== 1 ? 's' : '' }}</span>
@@ -9,6 +9,29 @@
             + New host
         </a>
     </div>
+
+    @if($this->availableTags->isNotEmpty())
+        <div class="flex flex-wrap items-center gap-2 mb-6">
+            <button
+                wire:click="$set('filterTag', '')"
+                @class([
+                    'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+                    'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100' => $filterTag === '',
+                    'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-gray-500 dark:hover:border-gray-400' => $filterTag !== '',
+                ])
+            >All</button>
+            @foreach($this->availableTags as $tagName)
+                <button
+                    wire:click="$set('filterTag', '{{ $tagName }}')"
+                    @class([
+                        'px-3 py-1 rounded-full text-xs font-medium border transition-colors',
+                        'bg-indigo-600 text-white border-indigo-600' => $filterTag === $tagName,
+                        'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500' => $filterTag !== $tagName,
+                    ])
+                >{{ $tagName }}</button>
+            @endforeach
+        </div>
+    @endif
 
     @if($hosts->isEmpty())
         <div class="text-center py-16 text-gray-400 dark:text-gray-500">
@@ -25,6 +48,13 @@
                             <p class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ $host->label }}</p>
                             @if($host->ip)
                                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-mono">{{ $host->ip }}</p>
+                            @endif
+                            @if($host->tags->isNotEmpty())
+                                <div class="flex flex-wrap gap-1 mt-1.5">
+                                    @foreach($host->tags as $tag)
+                                        <span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800">{{ $tag->name }}</span>
+                                    @endforeach
+                                </div>
                             @endif
                         </div>
                         @if($host->isOnline())

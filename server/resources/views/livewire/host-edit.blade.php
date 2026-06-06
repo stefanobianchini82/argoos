@@ -51,6 +51,50 @@
                 @enderror
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags</label>
+                @php $initialTags = array_values(array_filter(array_map('trim', explode(',', $tags)))) @endphp
+                <div
+                    x-data="{
+                        tags: @js($initialTags),
+                        input: '',
+                        add() {
+                            const t = this.input.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                            if (t && !this.tags.includes(t)) {
+                                this.tags.push(t);
+                                $wire.set('tags', this.tags.join(', '));
+                            }
+                            this.input = '';
+                        },
+                        remove(tag) {
+                            this.tags = this.tags.filter(t => t !== tag);
+                            $wire.set('tags', this.tags.join(', '));
+                        }
+                    }"
+                    class="flex flex-wrap items-center gap-1.5 min-h-[2.5rem] w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 bg-white dark:bg-gray-800 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent"
+                >
+                    <template x-for="tag in tags" :key="tag">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700">
+                            <span x-text="tag"></span>
+                            <button type="button" @click="remove(tag)" class="text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-200 focus:outline-none leading-none">&times;</button>
+                        </span>
+                    </template>
+                    <input
+                        type="text"
+                        x-model="input"
+                        @keydown.enter.prevent="add()"
+                        @keydown.comma.prevent="add()"
+                        @blur="if(input.trim()) add()"
+                        placeholder="es. prod, staging…"
+                        class="flex-1 min-w-[8rem] text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-transparent focus:outline-none"
+                    >
+                </div>
+                <p class="mt-1 text-xs text-gray-400 dark:text-gray-500">Premi Invio o virgola per aggiungere un tag.</p>
+                @error('tags')
+                    <p class="mt-1 text-xs text-red-600 dark:text-red-400">{{ $message }}</p>
+                @enderror
+            </div>
+
             <div class="flex items-center gap-3 pt-1">
                 <button
                     type="submit"
