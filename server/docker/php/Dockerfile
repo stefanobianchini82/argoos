@@ -3,10 +3,11 @@ FROM php:8.4-fpm-alpine AS base
 RUN apk add --no-cache \
     mysql-dev \
     libzip-dev \
+    icu-dev \
     unzip \
     git
 
-RUN docker-php-ext-install pdo pdo_mysql zip pcntl
+RUN docker-php-ext-install pdo pdo_mysql zip pcntl intl
 RUN docker-php-ext-enable opcache
 
 RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \

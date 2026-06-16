@@ -78,6 +78,8 @@ class MetricController extends Controller
             DiskPartition::insert($partitions);
 
             if (!empty($validated['processes'])) {
+                ProcessMemory::where('host_id', $host->id)->delete();
+
                 $processes = array_map(fn(array $p) => [
                     'host_id'      => $host->id,
                     'pid'          => $p['pid'],

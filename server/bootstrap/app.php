@@ -6,7 +6,6 @@ use App\Jobs\CheckAlertRules;
 use App\Jobs\CheckHostsOffline;
 use App\Jobs\CheckHttpEndpoints;
 use App\Jobs\PruneOldMetrics;
-use App\Jobs\PruneProcessMemory;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,7 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(CheckHostsOffline::class)->everyMinute();
         $schedule->job(CheckHttpEndpoints::class)->everyMinute();
         $schedule->job(PruneOldMetrics::class)->daily();
-        $schedule->job(PruneProcessMemory::class)->hourly();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
