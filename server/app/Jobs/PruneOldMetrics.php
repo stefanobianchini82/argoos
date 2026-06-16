@@ -17,12 +17,13 @@ class PruneOldMetrics implements ShouldQueue
             return;
         }
 
+        $cutoff    = now()->subDays(7);
         $nextMonth = now()->addMonth()->startOfMonth();
-        $toDrop    = now()->subMonths(2)->startOfMonth();
 
-        foreach (['metrics', 'disk_partitions', 'process_memory'] as $table) {
+        foreach (['metrics', 'disk_partitions'] as $table) {
             $this->addNextMonthPartition($table, $nextMonth);
-            $this->dropPartitionIfExists($table, $toDrop);
+            $this->dropPartitionsOlderThan($table, $cutoff);
+            DB::table($table)->where('collected_at', '<', $cutoff)->delete();
         }
     }
 
@@ -51,20 +52,20 @@ class PruneOldMetrics implements ShouldQueue
         );
     }
 
-    private function dropPartitionIfExists(string $table, Carbon $month): void
+    private function dropPartitionsOlderThan(string $table, Carbon $cutoff): void
     {
-        $name = 'p_'.$month->format('Y_m');
-
-        $exists = DB::selectOne("
-            SELECT 1
+        $rows = DB::select("
+            SELECT PARTITION_NAME
             FROM information_schema.PARTITIONS
-            WHERE TABLE_SCHEMA  = DATABASE()
-              AND TABLE_NAME    = ?
-              AND PARTITION_NAME = ?
-        ", [$table, $name]);
+            WHERE TABLE_SCHEMA          = DATABASE()
+              AND TABLE_NAME            = ?
+              AND PARTITION_NAME       != 'p_initial'
+              AND PARTITION_DESCRIPTION != 'MAXVALUE'
+              AND CAST(PARTITION_DESCRIPTION AS UNSIGNED) <= ?
+        ", [$table, $cutoff->timestamp]);
 
-        if ($exists) {
-            DB::statement("ALTER TABLE `{$table}` DROP PARTITION `{$name}`");
+        foreach ($rows as $row) {
+            DB::statement("ALTER TABLE `{$table}` DROP PARTITION `{$row->PARTITION_NAME}`");
         }
     }
 }
