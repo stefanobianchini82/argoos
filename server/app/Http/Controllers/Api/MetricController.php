@@ -49,6 +49,10 @@ class MetricController extends Controller
 
         $collectedAt = Carbon::parse($validated['collected_at'])->format('Y-m-d H:i:s');
 
+        if (!empty($validated['processes'])) {
+            ProcessMemory::where('host_id', $host->id)->delete();
+        }
+
         DB::transaction(function () use ($host, $validated, $collectedAt) {
             Metric::create([
                 'host_id'          => $host->id,
@@ -76,22 +80,20 @@ class MetricController extends Controller
             ], $validated['disk_partitions']);
 
             DiskPartition::insert($partitions);
-
-            if (!empty($validated['processes'])) {
-                ProcessMemory::where('host_id', $host->id)->delete();
-
-                $processes = array_map(fn(array $p) => [
-                    'host_id'      => $host->id,
-                    'pid'          => $p['pid'],
-                    'name'         => $p['name'],
-                    'mem_rss'      => $p['mem_rss'],
-                    'cpu_percent'  => $p['cpu_percent'] ?? 0.0,
-                    'collected_at' => $collectedAt,
-                ], $validated['processes']);
-
-                ProcessMemory::insert($processes);
-            }
         });
+
+        if (!empty($validated['processes'])) {
+            $processes = array_map(fn(array $p) => [
+                'host_id'      => $host->id,
+                'pid'          => $p['pid'],
+                'name'         => $p['name'],
+                'mem_rss'      => $p['mem_rss'],
+                'cpu_percent'  => $p['cpu_percent'] ?? 0.0,
+                'collected_at' => $collectedAt,
+            ], $validated['processes']);
+
+            ProcessMemory::insert($processes);
+        }
 
         return response()->json(['status' => 'created'], 201);
     }

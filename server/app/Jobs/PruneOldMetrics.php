@@ -20,7 +20,7 @@ class PruneOldMetrics implements ShouldQueue
         $cutoff    = now()->subDays(7);
         $nextMonth = now()->addMonth()->startOfMonth();
 
-        foreach (['metrics', 'disk_partitions'] as $table) {
+        foreach (['metrics'] as $table) {
             $this->addNextMonthPartition($table, $nextMonth);
             $this->dropPartitionsOlderThan($table, $cutoff);
             DB::table($table)->where('collected_at', '<', $cutoff)->delete();

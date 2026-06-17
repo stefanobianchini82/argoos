@@ -5,6 +5,7 @@ use App\Http\Middleware\BasicAuth;
 use App\Jobs\CheckAlertRules;
 use App\Jobs\CheckHostsOffline;
 use App\Jobs\CheckHttpEndpoints;
+use App\Jobs\PruneDiskPartitions;
 use App\Jobs\PruneOldMetrics;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -28,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(CheckAlertRules::class)->everyMinute();
         $schedule->job(CheckHostsOffline::class)->everyMinute();
         $schedule->job(CheckHttpEndpoints::class)->everyMinute();
+        $schedule->job(PruneDiskPartitions::class)->everyFifteenMinutes();
         $schedule->job(PruneOldMetrics::class)->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
