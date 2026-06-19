@@ -77,4 +77,87 @@ Alpine.data('metricCharts', (initialData) => ({
     },
 }));
 
+// Palette cycled across container series (one colour per container line).
+const containerPalette = [
+    '#6366f1', '#14b8a6', '#f59e0b', '#ec4899', '#3b82f6', '#84cc16',
+    '#8b5cf6', '#ef4444', '#06b6d4', '#f97316', '#a855f7', '#10b981',
+];
+
+Alpine.data('containerCharts', (initialData) => ({
+    charts: {},
+
+    init() {
+        this.build(initialData);
+    },
+
+    destroy() {
+        this.destroyAll();
+    },
+
+    update(data) {
+        this.build(data);
+    },
+
+    build(data) {
+        this.destroyAll();
+        if (!data || !data.containers || data.containers.length === 0) return;
+
+        this.multi('containerCpuChart', data.labels, data.containers, data.cpu);
+        this.multi('containerMemChart', data.labels, data.containers, data.memory_mb);
+    },
+
+    destroyAll() {
+        Object.values(this.charts).forEach(c => c.destroy());
+        this.charts = {};
+    },
+
+    multi(ref, xLabels, names, seriesByName) {
+        const canvas = this.$refs[ref];
+        if (!canvas) return;
+
+        this.charts[ref] = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: xLabels,
+                datasets: names.map((name, i) => {
+                    const color = containerPalette[i % containerPalette.length];
+                    return {
+                        label: name,
+                        data: seriesByName[name] || [],
+                        borderColor: color,
+                        backgroundColor: color + '18',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.3,
+                        fill: false,
+                        spanGaps: true,
+                    };
+                }),
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { boxWidth: 12, font: { size: 11 } },
+                    },
+                },
+                scales: {
+                    x: {
+                        ticks: { maxTicksLimit: 6, font: { size: 10 }, maxRotation: 0 },
+                        grid: { display: false },
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { font: { size: 10 } },
+                        grid: { color: '#f3f4f6' },
+                    },
+                },
+            },
+        });
+    },
+}));
+
 Livewire.start();
