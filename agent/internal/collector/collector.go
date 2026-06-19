@@ -28,21 +28,31 @@ type ProcessMemory struct {
 	CPUPercent float64 `json:"cpu_percent"`
 }
 
+type ContainerMetric struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Image       string  `json:"image"`
+	CPUPercent  float64 `json:"cpu_percent"`
+	MemoryUsage uint64  `json:"memory_usage"`
+	MemoryLimit uint64  `json:"memory_limit"`
+}
+
 type Metric struct {
-	CollectedAt    time.Time       `json:"collected_at"`
-	CPUUsage       float64         `json:"cpu_usage"`
-	RAMUsed        uint64          `json:"ram_used"`
-	RAMTotal       uint64          `json:"ram_total"`
-	DiskReadBytes  uint64          `json:"disk_read_bytes"`
-	DiskWriteBytes uint64          `json:"disk_write_bytes"`
-	NetRxBytes     uint64          `json:"net_rx_bytes"`
-	NetTxBytes     uint64          `json:"net_tx_bytes"`
-	LoadAvg1       float64         `json:"load_avg_1"`
-	LoadAvg5       float64         `json:"load_avg_5"`
-	LoadAvg15      float64         `json:"load_avg_15"`
-	UptimeSeconds  uint64          `json:"uptime_seconds"`
-	DiskPartitions []DiskPartition `json:"disk_partitions"`
-	Processes      []ProcessMemory `json:"processes"`
+	CollectedAt    time.Time         `json:"collected_at"`
+	CPUUsage       float64           `json:"cpu_usage"`
+	RAMUsed        uint64            `json:"ram_used"`
+	RAMTotal       uint64            `json:"ram_total"`
+	DiskReadBytes  uint64            `json:"disk_read_bytes"`
+	DiskWriteBytes uint64            `json:"disk_write_bytes"`
+	NetRxBytes     uint64            `json:"net_rx_bytes"`
+	NetTxBytes     uint64            `json:"net_tx_bytes"`
+	LoadAvg1       float64           `json:"load_avg_1"`
+	LoadAvg5       float64           `json:"load_avg_5"`
+	LoadAvg15      float64           `json:"load_avg_15"`
+	UptimeSeconds  uint64            `json:"uptime_seconds"`
+	DiskPartitions []DiskPartition   `json:"disk_partitions"`
+	Processes      []ProcessMemory   `json:"processes"`
+	Containers     []ContainerMetric `json:"containers,omitempty"`
 }
 
 // skipFSType lists pseudo/kernel-only filesystem types that carry no useful disk
@@ -67,10 +77,16 @@ type Collector struct {
 	// procCache retains *process.Process objects across cycles so CPUPercent(0)
 	// can compute a meaningful delta (first cycle always returns 0, like disk/net deltas).
 	procCache map[int32]*process.Process
+	// docker reads per-container stats from the Docker socket; nil when the socket
+	// is not mounted, in which case container collection is silently skipped.
+	docker *dockerClient
 }
 
 func New() *Collector {
-	return &Collector{procCache: make(map[int32]*process.Process)}
+	return &Collector{
+		procCache: make(map[int32]*process.Process),
+		docker:    newDockerClient(),
+	}
 }
 
 // Prime reads I/O counters once to establish the baseline, so the first real
@@ -153,6 +169,10 @@ func (c *Collector) Collect() (*Metric, error) {
 	}
 
 	m.Processes = c.collectTopProcesses(20)
+
+	if c.docker != nil {
+		m.Containers = c.docker.collect()
+	}
 
 	return m, nil
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ContainerMetric;
 use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
@@ -70,6 +71,35 @@ describe('POST /api/v1/metrics', function () {
         ]), ['X-API-Key' => $this->apiKey])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['disk_partitions.0.mount']);
+    });
+
+    it('stores container metrics when present', function () {
+        $payload = fullPayload([
+            'containers' => [
+                ['id' => 'abc123', 'name' => 'web', 'image' => 'nginx', 'cpu_percent' => 12.5, 'memory_usage' => 50_000_000, 'memory_limit' => 200_000_000],
+                ['id' => 'def456', 'name' => 'db', 'image' => 'mysql', 'cpu_percent' => 7.0, 'memory_usage' => 80_000_000, 'memory_limit' => 400_000_000],
+            ],
+        ]);
+
+        $this->postJson('/api/v1/metrics', $payload, ['X-API-Key' => $this->apiKey])
+            ->assertStatus(201);
+
+        expect(ContainerMetric::where('host_id', $this->host->id)->count())->toBe(2);
+    });
+
+    it('accepts a payload without containers (backward compatible)', function () {
+        $this->postJson('/api/v1/metrics', fullPayload(), ['X-API-Key' => $this->apiKey])
+            ->assertStatus(201);
+
+        expect(ContainerMetric::count())->toBe(0);
+    });
+
+    it('returns 422 when a container is missing memory_usage', function () {
+        $this->postJson('/api/v1/metrics', fullPayload([
+            'containers' => [['id' => 'abc123', 'name' => 'web', 'memory_limit' => 200_000_000]],
+        ]), ['X-API-Key' => $this->apiKey])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['containers.0.memory_usage']);
     });
 
     it('returns 422 when collected_at is not a valid date', function () {

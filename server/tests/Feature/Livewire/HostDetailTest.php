@@ -58,13 +58,15 @@ describe('HostDetail — range selection', function () {
     it('updates range property for all valid ranges without running DB aggregation', function () {
         // Ranges beyond 1h use MySQL-specific SQL (FROM_UNIXTIME) not available in SQLite.
         // We mock the MetricAggregator to verify range assignment without hitting MySQL functions.
-        $this->mock(\App\Services\MetricAggregator::class)
-            ->shouldReceive('getForRange')
+        $mock = $this->mock(\App\Services\MetricAggregator::class);
+        $mock->shouldReceive('getForRange')
             ->andReturn([
                 'labels' => [], 'cpu_usage' => [], 'ram_pct' => [],
                 'disk_read_kb' => [], 'disk_write_kb' => [],
                 'net_rx_kb' => [], 'net_tx_kb' => [], 'load_avg_1' => [],
             ]);
+        $mock->shouldReceive('getContainersForRange')
+            ->andReturn(['labels' => [], 'containers' => [], 'cpu' => [], 'memory_mb' => []]);
 
         foreach (['1h', '6h', '24h', '7d'] as $range) {
             Livewire::test(HostDetail::class, ['host' => $this->host])

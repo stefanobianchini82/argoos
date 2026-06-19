@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ContainerMetric;
 use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
@@ -42,6 +43,13 @@ class MetricController extends Controller
             'processes.*.name'          => ['required', 'string', 'max:255'],
             'processes.*.mem_rss'       => ['required', 'integer', 'min:0'],
             'processes.*.cpu_percent'   => ['sometimes', 'numeric', 'min:0'],
+            'containers'                => ['sometimes', 'array'],
+            'containers.*.id'           => ['required', 'string', 'max:64'],
+            'containers.*.name'         => ['required', 'string', 'max:255'],
+            'containers.*.image'        => ['nullable', 'string', 'max:255'],
+            'containers.*.cpu_percent'  => ['sometimes', 'numeric', 'min:0'],
+            'containers.*.memory_usage' => ['required', 'integer', 'min:0'],
+            'containers.*.memory_limit' => ['required', 'integer', 'min:0'],
         ]);
 
         /** @var Host $host */
@@ -80,6 +88,21 @@ class MetricController extends Controller
             ], $validated['disk_partitions']);
 
             DiskPartition::insert($partitions);
+
+            if (!empty($validated['containers'])) {
+                $containers = array_map(fn(array $c) => [
+                    'host_id'        => $host->id,
+                    'container_id'   => $c['id'],
+                    'container_name' => $c['name'],
+                    'image'          => $c['image'] ?? null,
+                    'cpu_percent'    => $c['cpu_percent'] ?? 0.0,
+                    'memory_usage'   => $c['memory_usage'],
+                    'memory_limit'   => $c['memory_limit'],
+                    'collected_at'   => $collectedAt,
+                ], $validated['containers']);
+
+                ContainerMetric::insert($containers);
+            }
         });
 
         if (!empty($validated['processes'])) {

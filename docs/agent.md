@@ -32,6 +32,7 @@ agent/
 | `COLLECT_INTERVAL` | Seconds between collections | `30` |
 | `RETRY_ATTEMPTS` | Max HTTP retries with exponential backoff | `3` |
 | `OUTPUT_FILE` | **File mode only** — file path or `stdout` | `/data/metrics.jsonl` |
+| `DOCKER_SOCKET` | Docker socket path; mounting it enables per-container metrics | `/var/run/docker.sock` |
 
 The agent selects its mode automatically:
 
@@ -100,6 +101,26 @@ docker run --rm \
   argoos-agent:latest
 ```
 
+## Container metrics (Docker)
+
+If the host runs Docker, the agent can additionally collect **per-container** CPU and memory metrics. This is enabled simply by mounting the Docker socket into the agent container — no extra configuration is required:
+
+```bash
+docker run --rm \
+  -e SERVER_URL=https://your-server/api/v1/metrics \
+  -e API_KEY=your-api-key-here \
+  -e HOST_LABEL=my-server \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  argoos-agent:latest
+```
+
+- **Auto-enable** — if the socket is reachable the agent collects every *running* container; if it is **not** mounted the feature is silently disabled (no error, the `containers` field is simply omitted).
+- **Read-only** — the agent only issues read-only Docker API calls (`GET /containers/json`, `GET /containers/{id}/stats`). All socket-touching code lives in the agent binary itself; no Docker SDK or socket proxy is used.
+- **Data collected** per container: `cpu_percent`, `memory_usage`, `memory_limit` (plus `id`, `name`, `image` for display and historical aggregation).
+- **Custom socket path** — override the default with `DOCKER_SOCKET` if your host exposes the socket elsewhere; mount it to the same path inside the container.
+
+Container metrics work in both HTTP mode and file mode (the `containers` array is included in the JSONL output).
+
 ## Metrics Collected
 
 | Metric | Description |
@@ -115,6 +136,7 @@ docker run --rm \
 | `load_avg_5` | 5-minute load average |
 | `load_avg_15` | 15-minute load average |
 | `disk_partitions` | Array: mount point, total, used, free for each partition |
+| `containers` | Array: per running Docker container — name, image, cpu_percent, memory_usage, memory_limit (present only when the Docker socket is mounted) |
 
 Disk and network values are **deltas** relative to the previous interval. On startup the agent primes the counters once before the first tick, so the initial reading reflects usage since the agent started rather than since system boot.
 
@@ -124,6 +146,12 @@ One JSON object sent per interval (identical whether written to file or POSTed t
 
 ```json
 {"collected_at":"2026-05-07T14:00:00Z","cpu_usage":23.4,"ram_used":2147483648,"ram_total":8589934592,"disk_read_bytes":204800,"disk_write_bytes":102400,"net_rx_bytes":512000,"net_tx_bytes":256000,"load_avg_1":0.45,"load_avg_5":0.38,"load_avg_15":0.31,"disk_partitions":[{"mount":"/","total":107374182400,"used":53687091200,"free":53687091200}]}
+```
+
+When the Docker socket is mounted, the payload also includes a `containers` array, one object per running container:
+
+```json
+"containers":[{"id":"3a1f...","name":"web","image":"nginx","cpu_percent":3.2,"memory_usage":52428800,"memory_limit":536870912}]
 ```
 
 In HTTP mode the payload is sent as `application/json` with `X-API-Key: <key>` header. The server identifies the host from the API key — no `host_label` field is included in the payload.

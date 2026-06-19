@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\ContainerMetric;
 use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
@@ -42,6 +43,7 @@ class HostDetail extends Component
             Metric::where('host_id', $this->host->id)->delete();
             DiskPartition::where('host_id', $this->host->id)->delete();
             ProcessMemory::where('host_id', $this->host->id)->delete();
+            ContainerMetric::where('host_id', $this->host->id)->delete();
             $this->host->delete();
         });
 
@@ -68,8 +70,9 @@ class HostDetail extends Component
         }
 
         $this->range = $range;
-        $data = app(MetricAggregator::class)->getForRange($this->host, $this->range);
-        $this->dispatch('charts-updated', data: $data);
+        $aggregator = app(MetricAggregator::class);
+        $this->dispatch('charts-updated', data: $aggregator->getForRange($this->host, $this->range));
+        $this->dispatch('container-charts-updated', data: $aggregator->getContainersForRange($this->host, $this->range));
     }
 
     public function render()
@@ -103,17 +106,37 @@ class HostDetail extends Component
             }
         }
 
-        $chartData = app(MetricAggregator::class)->getForRange($this->host, $this->range);
+        $latestContainers = new Collection();
+        if ($latestMetric !== null) {
+            $cutoff         = now()->subMinutes(10);
+            $maxContainerAt = Cache::remember("container_max_at.{$this->host->id}", 15, fn () =>
+                ContainerMetric::where('host_id', $this->host->id)
+                    ->where('collected_at', '>=', $cutoff)
+                    ->max('collected_at')
+            );
+            if ($maxContainerAt !== null) {
+                $latestContainers = ContainerMetric::where('host_id', $this->host->id)
+                    ->where('collected_at', $maxContainerAt)
+                    ->orderByDesc('cpu_percent')
+                    ->get();
+            }
+        }
+
+        $aggregator         = app(MetricAggregator::class);
+        $chartData          = $aggregator->getForRange($this->host, $this->range);
+        $containerChartData = $aggregator->getContainersForRange($this->host, $this->range);
 
         return view('livewire.host-detail', [
-            'latestMetric'     => $latestMetric,
-            'latestPartitions' => $latestPartitions,
-            'latestProcesses'  => $latestProcesses,
-            'chartData'        => $chartData,
-            'range'            => $this->range,
-            'validRanges'      => self::$validRanges,
-            'procSort'         => $this->procSort,
-            'procDir'          => $this->procDir,
+            'latestMetric'       => $latestMetric,
+            'latestPartitions'   => $latestPartitions,
+            'latestProcesses'    => $latestProcesses,
+            'latestContainers'   => $latestContainers,
+            'chartData'          => $chartData,
+            'containerChartData' => $containerChartData,
+            'range'              => $this->range,
+            'validRanges'        => self::$validRanges,
+            'procSort'           => $this->procSort,
+            'procDir'            => $this->procDir,
         ])->layout('layouts.app', ['title' => $this->host->label . ' — Argoos']);
     }
 }

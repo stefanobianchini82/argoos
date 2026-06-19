@@ -215,6 +215,70 @@
             </div>
         @endif
 
+        {{-- Container charts --}}
+        @if(count($containerChartData['containers']) > 0)
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 mt-8">Containers</h2>
+            <div
+                wire:key="container-charts"
+                wire:ignore
+                x-data="containerCharts(@js($containerChartData))"
+                @container-charts-updated.window="update($event.detail.data)"
+            >
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+                    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">Container CPU (%)</p>
+                        <div class="h-40">
+                            <canvas x-ref="containerCpuChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+                        <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">Container Memory (MB)</p>
+                        <div class="h-40">
+                            <canvas x-ref="containerMemChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        {{-- Container current state --}}
+        @if($latestContainers->isNotEmpty())
+            <div class="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-8">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
+                            <th class="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Container</th>
+                            <th class="text-left text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Image</th>
+                            <th class="text-right text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">CPU %</th>
+                            <th class="text-right text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Memory</th>
+                            <th class="text-right text-xs font-medium text-gray-400 dark:text-gray-500 px-4 py-3">Mem %</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach($latestContainers as $container)
+                            @php $memPct = $container->memory_limit > 0 ? round($container->memory_usage / $container->memory_limit * 100) : 0; @endphp
+                            <tr>
+                                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">{{ $container->container_name }}</td>
+                                <td class="px-4 py-2 font-mono text-xs text-gray-400 dark:text-gray-500">{{ $container->image }}</td>
+                                <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ number_format($container->cpu_percent, 1) }}%</td>
+                                <td class="px-4 py-2 text-right text-gray-600 dark:text-gray-400">{{ number_format($container->memory_usage / 1024 / 1024, 1) }} MB</td>
+                                <td class="px-4 py-2 text-right">
+                                    <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full
+                                        @if($memPct >= 90) bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400
+                                        @elseif($memPct >= 75) bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
+                                        @else bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400
+                                        @endif">
+                                        {{ $memPct }}%
+                                    </span>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+
         {{-- Disk partitions --}}
         @if($latestPartitions->isNotEmpty())
             <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Disk Partitions</h2>
