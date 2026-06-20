@@ -33,11 +33,12 @@ Argoos is made of two independent components:
 ## Features
 
 - **Real-time dashboard** — host status grid, per-host metrics, disk partitions, load averages
+- **Container monitoring** — per-container CPU% and memory for running Docker containers, with per-host charts and a live container table; auto-enabled when the Docker socket is mounted on the agent
 - **Historical charts** — Chart.js graphs with configurable time range
 - **Alert rules** — threshold-based alerts (CPU, RAM, disk) per host, dispatched via Telegram or Slack
 - **Offline detection** — hosts silent for >3 minutes trigger an offline notification
 - **Async ingestion** — metrics are queued via Redis/Horizon; the agent never waits on DB writes
-- **Efficient storage** — MySQL RANGE partitioning by month; old partitions are dropped instantly (`ALTER TABLE DROP PARTITION`)
+- **Efficient storage** — MySQL RANGE partitioning (monthly); a daily job enforces a **7-day retention** by dropping expired partitions instantly (`ALTER TABLE DROP PARTITION`)
 - **O(1) auth** — API key prefix index means host lookup is a single indexed read regardless of fleet size
 - **Tiny agent** — static Go binary, `FROM scratch` Docker image (~8 MB), cross-compiles to any Linux arch
 
@@ -147,10 +148,13 @@ docker run -d --restart unless-stopped --pid=host \
   -e API_KEY=<key-generated-for-this-host> \
   -e HOST_LABEL=web-server-1 \
   -e COLLECT_INTERVAL=30 \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
   ghcr.io/stefanobianchini82/argoos-agent:latest
 ```
 
 Each host needs its own API key. Register additional hosts from the dashboard (**Hosts → Add Host**): the UI generates and displays the key on creation.
+
+**Container monitoring** auto-enables when the Docker socket is mounted (`-v /var/run/docker.sock:/var/run/docker.sock:ro`): the agent discovers running containers and reports their CPU and memory. Without the socket the agent runs normally, collecting system metrics only.
 
 ### Agent configuration
 
@@ -203,6 +207,7 @@ Each host needs its own API key. Register additional hosts from the dashboard (*
 | `net_tx_bytes` | Network bytes transmitted since last interval |
 | `load_avg_1/5/15` | System load averages |
 | `disk_partitions` | Per-partition total, used, free bytes |
+| `containers` | Per-container CPU% and memory (usage / limit) for running Docker containers (when the Docker socket is mounted) |
 
 Disk and network values are **deltas** relative to the previous interval.
 
@@ -242,7 +247,9 @@ curl -s -X POST http://<server-ip>:8080/api/v1/metrics \
 
 **API key auth in O(1)**: Each host stores a bcrypt hash (`api_key`) and an indexed 12-character prefix (`api_key_prefix`). Incoming requests are matched by prefix first (single indexed read), then verified with `password_verify()` against exactly one candidate — constant time regardless of fleet size.
 
-**MySQL RANGE partitioning**: The `metrics` and `disk_partitions` tables are partitioned by `UNIX_TIMESTAMP(collected_at)` monthly. Retention cleanup is an instant metadata operation (`ALTER TABLE DROP PARTITION`) rather than a slow `DELETE` across millions of rows.
+**MySQL RANGE partitioning**: The `metrics`, `container_metrics`, and `disk_partitions` tables are partitioned by `UNIX_TIMESTAMP(collected_at)` monthly. A `PruneOldMetrics` job runs daily and enforces a 7-day retention by dropping partitions older than the cutoff (plus a `DELETE` of any residual rows) — an instant metadata operation rather than a slow `DELETE` across millions of rows.
+
+**Container monitoring**: The agent talks to the Docker Engine API over the Unix socket using only the Go standard library. The feature auto-discovers running containers and degrades gracefully — if the socket is not mounted, container collection is simply skipped and system metrics keep flowing.
 
 **Async ingestion**: The API controller validates the payload and returns `202` immediately. A Horizon job handles the DB write asynchronously, keeping agent POST latency low even under load.
 
@@ -306,7 +313,8 @@ docker run --rm \
 | 3 | ✅ Done | Historical Chart.js graphs, time range selector |
 | 4 | ✅ Done | Alert rules, threshold evaluator, Telegram & Slack notifications |
 | 5 | ✅ Done | Agent image on GHCR, full Docker Compose with agent service, API docs |
-| 6 | Pending | Multi-disk views, top processes, HTTP uptime checks |
+| 6 | ✅ Done | Multi-disk views, top processes, HTTP uptime checks |
+| 7 | ✅ Done | Docker container monitoring: per-container CPU & memory, charts and live table |
 
 ---
 
