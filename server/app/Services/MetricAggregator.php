@@ -117,7 +117,7 @@ class MetricAggregator
             ->where('collected_at', '>=', now()->subMinutes($minutes))
             ->selectRaw(
                 'container_name,
-                 FLOOR(UNIX_TIMESTAMP(collected_at) / ?) AS bucket,
+                 ANY_VALUE(FLOOR(UNIX_TIMESTAMP(collected_at) / ?)) AS bucket,
                  ANY_VALUE(FROM_UNIXTIME(FLOOR(UNIX_TIMESTAMP(collected_at) / ?) * ?)) AS bucket_label,
                  AVG(cpu_percent)  AS cpu_percent,
                  AVG(memory_usage) AS memory_usage',
