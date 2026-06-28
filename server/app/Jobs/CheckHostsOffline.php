@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\Host;
 use App\Models\Setting;
 use App\Notifications\HostOffline;
+use App\Notifications\HostRecovered;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Notifications\AnonymousNotifiable;
@@ -15,23 +16,23 @@ class CheckHostsOffline implements ShouldQueue
 
     public function handle(): void
     {
-        $emailEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
+        $emailEnabled = filter_var(Setting::get(Setting::HOST_OFFLINE_EMAIL_ENABLED, true), FILTER_VALIDATE_BOOLEAN);
         $telegramEnabled = filter_var(Setting::get(Setting::HOST_OFFLINE_TELEGRAM_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
-        $slackEnabled    = filter_var(Setting::get(Setting::HOST_OFFLINE_SLACK_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
+        $slackEnabled = filter_var(Setting::get(Setting::HOST_OFFLINE_SLACK_ENABLED, false), FILTER_VALIDATE_BOOLEAN);
 
-        $alertEmail      = Setting::get(Setting::ALERT_EMAIL);
-        $telegramChatId  = Setting::get(Setting::TELEGRAM_CHAT_ID);
+        $alertEmail = Setting::get(Setting::ALERT_EMAIL);
+        $telegramChatId = Setting::get(Setting::TELEGRAM_CHAT_ID);
         $slackWebhookUrl = Setting::get(Setting::SLACK_WEBHOOK_URL);
 
-        $hasEmail    = $emailEnabled && filled($alertEmail);
+        $hasEmail = $emailEnabled && filled($alertEmail);
         $hasTelegram = $telegramEnabled && filled($telegramChatId);
-        $hasSlack    = $slackEnabled && filled($slackWebhookUrl);
+        $hasSlack = $slackEnabled && filled($slackWebhookUrl);
 
         if (! $hasEmail && ! $hasTelegram && ! $hasSlack) {
             return;
         }
 
-        $offlineMinutes  = max(1, (int) Setting::get(Setting::HOST_OFFLINE_OFFLINE_MINUTES, 3));
+        $offlineMinutes = max(1, (int) Setting::get(Setting::HOST_OFFLINE_OFFLINE_MINUTES, 3));
         $renotifyMinutes = max(1, (int) Setting::get(Setting::HOST_OFFLINE_RENOTIFY_MINUTES, 10));
 
         Host::query()
@@ -39,7 +40,7 @@ class CheckHostsOffline implements ShouldQueue
             ->where('last_seen_at', '<', now()->subMinutes($offlineMinutes))
             ->where(function ($q) use ($renotifyMinutes) {
                 $q->whereNull('last_offline_notified_at')
-                  ->orWhere('last_offline_notified_at', '<', now()->subMinutes($renotifyMinutes));
+                    ->orWhere('last_offline_notified_at', '<', now()->subMinutes($renotifyMinutes));
             })
             ->each(function (Host $host) use ($alertEmail, $telegramChatId, $slackWebhookUrl, $hasEmail, $hasTelegram, $hasSlack) {
                 $host->update(['last_offline_notified_at' => now()]);
@@ -59,6 +60,30 @@ class CheckHostsOffline implements ShouldQueue
                 }
 
                 $notifiable->notify(new HostOffline($host, $hasEmail, $hasTelegram, $hasSlack));
+            });
+
+        // Recovery: host già notificati come offline che hanno ripreso a inviare metriche
+        Host::query()
+            ->whereNotNull('last_offline_notified_at')
+            ->where('last_seen_at', '>=', now()->subMinutes($offlineMinutes))
+            ->each(function (Host $host) use ($alertEmail, $telegramChatId, $slackWebhookUrl, $hasEmail, $hasTelegram, $hasSlack) {
+                $host->update(['last_offline_notified_at' => null]);
+
+                $notifiable = new AnonymousNotifiable;
+
+                if ($hasEmail) {
+                    $notifiable = $notifiable->route('mail', $alertEmail);
+                }
+
+                if ($hasTelegram) {
+                    $notifiable = $notifiable->route('telegram', $telegramChatId);
+                }
+
+                if ($hasSlack) {
+                    $notifiable = $notifiable->route('slack', $slackWebhookUrl);
+                }
+
+                $notifiable->notify(new HostRecovered($host, $hasEmail, $hasTelegram, $hasSlack));
             });
     }
 }
