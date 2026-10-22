@@ -1,6 +1,7 @@
 name: Server — Tests & Push to GHCR
 
 on:
+  workflow_dispatch:
   push:
     branches: [master]
     tags: ["v*.*.*"]
@@ -91,6 +92,8 @@ jobs:
           file: ./server/docker/php/Dockerfile
           target: production
           push: true
+          pull: true
+          no-cache: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
