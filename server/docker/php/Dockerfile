@@ -50,6 +50,7 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 COPY --from=node-build /app/public/build /var/www/html-assets/public/build
 
 COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+COPY docker/php/security.ini /usr/local/etc/php/conf.d/security.ini
 COPY docker/php/entrypoint.sh /usr/local/bin/argoos-entrypoint
 RUN chmod +x /usr/local/bin/argoos-entrypoint
 
