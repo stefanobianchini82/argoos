@@ -20,6 +20,9 @@ class Setting extends Model
     public const HOST_OFFLINE_SLACK_ENABLED    = 'host_offline.slack_enabled';
     public const HOST_OFFLINE_OFFLINE_MINUTES  = 'host_offline.offline_minutes';
     public const HOST_OFFLINE_RENOTIFY_MINUTES = 'host_offline.renotify_minutes';
+    public const MCP_TOKEN_HASH                = 'mcp.token_hash';
+    public const MCP_TOKEN_HINT                = 'mcp.token_hint';
+    public const MCP_TOKEN_CREATED_AT          = 'mcp.token_created_at';
 
     public static function get(string $key, mixed $default = null): mixed
     {

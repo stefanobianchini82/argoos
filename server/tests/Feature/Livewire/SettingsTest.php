@@ -140,3 +140,59 @@ describe('Settings — testSlackNotification', function () {
             ->assertSet('slackTestStatus', 'error');
     });
 });
+
+describe('Settings — MCP token', function () {
+    it('generates a token, stores only its hash and shows it once', function () {
+        $component = Livewire::test(Settings::class)
+            ->call('generateMcpToken')
+            ->assertSee('Copy it now');
+
+        $token = $component->get('mcpNewToken');
+
+        expect($token)->toStartWith(\App\Services\McpToken::PREFIX)
+            ->and(Setting::get(Setting::MCP_TOKEN_HASH))->toBe(hash('sha256', $token))
+            ->and(Setting::get(Setting::MCP_TOKEN_HINT))->toBe(substr($token, -4))
+            ->and(Setting::where('value', $token)->exists())->toBeFalse();
+
+        // A fresh page load never shows the plaintext again.
+        Livewire::test(Settings::class)
+            ->assertSet('mcpNewToken', '')
+            ->assertDontSee($token)
+            ->assertSee('…' . substr($token, -4));
+    });
+
+    it('revokes the token', function () {
+        app(\App\Services\McpToken::class)->generate();
+
+        Livewire::test(Settings::class)
+            ->call('revokeMcpToken')
+            ->assertSee('Disabled');
+
+        expect(Setting::get(Setting::MCP_TOKEN_HASH))->toBeNull();
+    });
+
+    it('excludes MCP keys from export and ignores them on import', function () {
+        Setting::set(Setting::ALERT_EMAIL, 'ops@example.com');
+        app(\App\Services\McpToken::class)->generate();
+        $currentHash = Setting::get(Setting::MCP_TOKEN_HASH);
+
+        $export = Livewire::test(Settings::class)->call('export');
+        $exported = json_decode(base64_decode($export->effects['download']['content']), true);
+        expect($exported['settings'])->toHaveKey(Setting::ALERT_EMAIL)
+            ->and(array_keys($exported['settings']))->not->toContain(Setting::MCP_TOKEN_HASH);
+
+        $payload = json_encode([
+            'version'  => 1,
+            'settings' => [Setting::MCP_TOKEN_HASH => 'stale-hash', Setting::ALERT_EMAIL => 'new@example.com'],
+            'hosts'    => [],
+        ]);
+
+        Livewire::test(Settings::class)
+            ->set('importFile', \Illuminate\Http\UploadedFile::fake()->createWithContent('backup.json', $payload))
+            ->call('import')
+            ->assertSet('importError', '');
+
+        expect(Setting::get(Setting::MCP_TOKEN_HASH))->toBe($currentHash)
+            ->and(Setting::get(Setting::ALERT_EMAIL))->toBe('new@example.com');
+    });
+});

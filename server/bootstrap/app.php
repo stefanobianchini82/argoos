@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\AuthenticateAgent;
+use App\Http\Middleware\AuthenticateMcp;
 use App\Http\Middleware\BasicAuth;
 use App\Jobs\CheckAlertRules;
 use App\Jobs\CheckHostsOffline;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.agent'         => AuthenticateAgent::class,
             'auth.basic.argoos'  => BasicAuth::class,
+            'auth.mcp'           => AuthenticateMcp::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

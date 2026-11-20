@@ -6,6 +6,7 @@ use App\Models\AlertRule;
 use App\Models\Host;
 use App\Models\HttpCheck;
 use App\Models\Setting;
+use App\Services\McpToken;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Title;
@@ -33,6 +34,8 @@ class Settings extends Component
     public string $telegramTestMessage = '';
     public string $slackTestStatus     = '';
     public string $slackTestMessage    = '';
+
+    public string $mcpNewToken = '';
 
     public mixed  $importFile   = null;
     public string $importError  = '';
@@ -167,6 +170,22 @@ class Settings extends Component
         }
     }
 
+    public function generateMcpToken(McpToken $tokens): void
+    {
+        $this->mcpNewToken = $tokens->generate();
+    }
+
+    public function revokeMcpToken(McpToken $tokens): void
+    {
+        $tokens->revoke();
+        $this->mcpNewToken = '';
+    }
+
+    public function hideMcpToken(): void
+    {
+        $this->mcpNewToken = '';
+    }
+
     public function resetOpcache(): void
     {
         if (function_exists('opcache_reset')) {
@@ -180,7 +199,7 @@ class Settings extends Component
         $data = [
             'version'     => 1,
             'exported_at' => now()->toIso8601String(),
-            'settings'    => Setting::all()->pluck('value', 'key')->toArray(),
+            'settings'    => Setting::where('key', 'not like', 'mcp.%')->pluck('value', 'key')->toArray(),
             'hosts'       => Host::with(['alertRules', 'httpChecks'])->get()->map(fn (Host $h) => [
                 'label'          => $h->label,
                 'description'    => $h->description,
@@ -244,6 +263,10 @@ class Settings extends Component
         try {
         DB::transaction(function () use ($data, &$newHosts, &$updatedHosts, &$importedRules, &$importedChecks): void {
             foreach ($data['settings'] ?? [] as $key => $value) {
+                // Never restore an MCP token from a backup: it must be generated again.
+                if (str_starts_with((string) $key, 'mcp.')) {
+                    continue;
+                }
                 Setting::set($key, $value);
             }
 
@@ -333,6 +356,9 @@ class Settings extends Component
 
     public function render()
     {
-        return view('livewire.settings')->layout('layouts.app');
+        return view('livewire.settings', [
+            'mcpStatus' => app(McpToken::class)->status(),
+            'mcpUrl'    => url('/mcp'),
+        ])->layout('layouts.app');
     }
 }

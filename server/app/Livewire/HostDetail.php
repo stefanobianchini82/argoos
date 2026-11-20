@@ -7,9 +7,9 @@ use App\Models\DiskPartition;
 use App\Models\Host;
 use App\Models\Metric;
 use App\Models\ProcessMemory;
+use App\Services\HostSnapshot;
 use App\Services\MetricAggregator;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
@@ -79,48 +79,10 @@ class HostDetail extends Component
     {
         $latestMetric = $this->host->latestMetric;
 
-        $latestPartitions = new Collection();
-        if ($latestMetric !== null) {
-            $cutoff = now()->subMinutes(10);
-            $maxAt  = Cache::remember("disk_max_at.{$this->host->id}", 15, fn () =>
-                DiskPartition::where('host_id', $this->host->id)
-                    ->where('collected_at', '>=', $cutoff)
-                    ->max('collected_at')
-            );
-            if ($maxAt !== null) {
-                $latestPartitions = DiskPartition::where('host_id', $this->host->id)
-                    ->where('collected_at', $maxAt)
-                    ->orderBy('mount_point')
-                    ->get();
-            }
-        }
-
-        $latestProcesses = new Collection();
-        if ($latestMetric !== null) {
-            $maxProcAt = ProcessMemory::where('host_id', $this->host->id)->max('collected_at');
-            if ($maxProcAt !== null) {
-                $latestProcesses = ProcessMemory::where('host_id', $this->host->id)
-                    ->where('collected_at', $maxProcAt)
-                    ->orderBy($this->procSort, $this->procDir)
-                    ->get();
-            }
-        }
-
-        $latestContainers = new Collection();
-        if ($latestMetric !== null) {
-            $cutoff         = now()->subMinutes(10);
-            $maxContainerAt = Cache::remember("container_max_at.{$this->host->id}", 15, fn () =>
-                ContainerMetric::where('host_id', $this->host->id)
-                    ->where('collected_at', '>=', $cutoff)
-                    ->max('collected_at')
-            );
-            if ($maxContainerAt !== null) {
-                $latestContainers = ContainerMetric::where('host_id', $this->host->id)
-                    ->where('collected_at', $maxContainerAt)
-                    ->orderByDesc('cpu_percent')
-                    ->get();
-            }
-        }
+        $snapshot         = app(HostSnapshot::class);
+        $latestPartitions = $latestMetric !== null ? $snapshot->latestPartitions($this->host) : new Collection();
+        $latestProcesses  = $latestMetric !== null ? $snapshot->latestProcesses($this->host, $this->procSort, $this->procDir) : new Collection();
+        $latestContainers = $latestMetric !== null ? $snapshot->latestContainers($this->host) : new Collection();
 
         $aggregator         = app(MetricAggregator::class);
         $chartData          = $aggregator->getForRange($this->host, $this->range);

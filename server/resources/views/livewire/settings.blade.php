@@ -163,6 +163,83 @@
 
     </form>
 
+    {{-- MCP Access --}}
+    <div class="mt-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <div>
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300">MCP Access</h2>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                Bearer token for the MCP endpoint <code class="font-mono">{{ $mcpUrl }}</code>, used by LLM clients (e.g. Claude) to read host status and latest metrics.
+            </p>
+        </div>
+
+        <div class="text-sm">
+            @if($mcpStatus['enabled'])
+                <span class="inline-flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-green-500"></span> Enabled
+                </span>
+                <span class="text-gray-500 dark:text-gray-400">
+                    · token ending in <code class="font-mono">…{{ $mcpStatus['hint'] }}</code>
+                    @if($mcpStatus['created_at'])
+                        · created {{ $mcpStatus['created_at']->format('Y-m-d H:i') }}
+                    @endif
+                </span>
+            @else
+                <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-gray-400"></span> Disabled — generate a token to enable MCP
+                </span>
+            @endif
+        </div>
+
+        @if($mcpNewToken !== '')
+            <div class="rounded-xl border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950 p-4 space-y-3">
+                <div>
+                    <p class="text-sm font-medium text-green-800 dark:text-green-200">New MCP token generated.</p>
+                    <p class="text-xs text-green-700 dark:text-green-400">Copy it now — it will not be shown again.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <code id="mcp-token-value" class="flex-1 block break-all rounded-lg bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 select-all">{{ $mcpNewToken }}</code>
+                    <button type="button"
+                            onclick="navigator.clipboard.writeText(document.getElementById('mcp-token-value').textContent.trim()); this.textContent = 'Copied!';"
+                            class="shrink-0 text-xs font-medium bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-green-300 dark:border-green-700 rounded-lg px-3 py-2 transition-colors">Copy</button>
+                </div>
+                <div>
+                    <p class="text-xs text-green-700 dark:text-green-400 mb-1">Claude Code:</p>
+                    <div class="flex items-center gap-2">
+                        <code id="mcp-cmd-value" class="flex-1 block break-all rounded-lg bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 px-3 py-2 text-xs font-mono text-gray-900 dark:text-gray-100 select-all">claude mcp add --transport http argoos {{ $mcpUrl }} --header "Authorization: Bearer {{ $mcpNewToken }}"</code>
+                        <button type="button"
+                                onclick="navigator.clipboard.writeText(document.getElementById('mcp-cmd-value').textContent.trim()); this.textContent = 'Copied!';"
+                                class="shrink-0 text-xs font-medium bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-green-300 dark:border-green-700 rounded-lg px-3 py-2 transition-colors">Copy</button>
+                    </div>
+                </div>
+                <button type="button" wire:click="hideMcpToken"
+                        class="text-xs text-green-700 dark:text-green-400 hover:underline">I have copied it — hide</button>
+            </div>
+        @endif
+
+        <div class="flex items-center gap-3">
+            <button type="button"
+                    wire:click="generateMcpToken"
+                    @if($mcpStatus['enabled'])
+                        wire:confirm="Regenerate the MCP token? The current token will stop working immediately and connected clients must be reconfigured."
+                    @endif
+                    wire:loading.attr="disabled"
+                    wire:target="generateMcpToken"
+                    class="text-sm font-medium px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white transition-colors disabled:opacity-40">
+                {{ $mcpStatus['enabled'] ? 'Regenerate token' : 'Generate token' }}
+            </button>
+            @if($mcpStatus['enabled'])
+                <button type="button"
+                        wire:click="revokeMcpToken"
+                        wire:confirm="Revoke the MCP token? The MCP endpoint will be disabled until a new token is generated."
+                        wire:loading.attr="disabled"
+                        wire:target="revokeMcpToken"
+                        class="text-sm font-medium px-4 py-2 rounded-lg border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-40">
+                    Revoke
+                </button>
+            @endif
+        </div>
+    </div>
+
     {{-- OPCache --}}
     <div class="mt-8 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <div>
